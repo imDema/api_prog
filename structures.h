@@ -29,7 +29,7 @@ void insert(Node root, char* word)
         int mod = k%16;
         if(root->refs[div] == NULL)
         {
-            root->refs[div] = malloc(sizeof(void*)*16);
+            root->refs[div] = (Node *)calloc(16,sizeof(Node));
         }
         if(root->refs[div][mod] == NULL)
         {
@@ -60,9 +60,7 @@ int hash(char c)
 
 Node new_node()
 {
-    struct node newn;
-    Node n = &newn;
-    n->complete = 0;
+    Node n = (Node) calloc(1 , sizeof(struct node));
     return n;
 }
 
