@@ -14,7 +14,7 @@ struct node
 };
 typedef struct node* Node;
 
-int hash(char c);
+int hashchar(char c);
 Node new_node();
 void insert(Node root, char* word)
 {
@@ -24,7 +24,7 @@ void insert(Node root, char* word)
     }
     else
     {
-        int k = hash(word[0]);
+        int k = hashchar(word[0]);
         int div = k/4;
         int mod = k%16;
         if(root->refs[div] == NULL)
@@ -40,7 +40,7 @@ void insert(Node root, char* word)
     
 }
 
-int hash(char c)
+int hashchar(char c)
 {
     if(c >= 'A' && c <= 'Z')
         return c + OFFSET_UPPER;
