@@ -40,24 +40,6 @@ void insert(Node root, char* word)
     
 }
 
-int hashchar(char c)
-{
-    if(c >= 'A' && c <= 'Z')
-        return c + OFFSET_UPPER;
-    
-    else if (c >= 'a' && c <= 'z')
-        return c + OFFSET_LOWER;
-
-    else if(c >= '0' && c <= '9')
-        return c + OFFSET_NUMBER;
-    
-    else if(c == '_')
-        return UNDERSCORE;
-    
-    else 
-        return DASH;
-}
-
 Node new_node()
 {
     Node n = (Node) calloc(1 , sizeof(struct node));

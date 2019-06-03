@@ -2,21 +2,34 @@
 #include<stdio.h>
 #include "structures.h"
 
+#define HASH_A 31
+
+int hashchar(char c)
+{
+    if(c >= 'A' && c <= 'Z')
+        return c + OFFSET_UPPER;
+    
+    else if (c >= 'a' && c <= 'z')
+        return c + OFFSET_LOWER;
+
+    else if(c >= '0' && c <= '9')
+        return c + OFFSET_NUMBER;
+    
+    else if(c == '_')
+        return UNDERSCORE;
+    
+    else 
+        return DASH;
+}
+
 uint hash(char* word)
 {
-    uint h0 = 1;
+    uint h = 0;
     for(int i = 0; word[i]; i++)
     {
-        if(i%2)
-        {
-            h0 += hashchar(word[i]) * (i+1)*(i+1);
-        }
-        else
-        {
-            h0 ^= hashchar(word[i]) << (i*2)%16;
-        }
+        h = (h*HASH_A) + word[i]; //ALLOW OVERFLOW
     }
-    return h0;
+    return h;
 }
 
 struct hashtable
