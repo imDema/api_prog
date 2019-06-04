@@ -10,6 +10,8 @@
 #define UNDERSCORE 62
 #define DASH 63
 
+typedef unsigned int uint;
+
 int hashchar(char c)
 {
     if(c >= 'A' && c <= 'Z')
@@ -38,29 +40,24 @@ uint hash(char* word)
     return h;
 }
 
-struct hashtable
+struct _hashtable
 {
     void** buckets;
     int count;
     int size;
 };
-typedef struct hashtable* Hashtable;
+typedef struct _hashtable* hashtable;
 
-struct htelement
+hashtable new_hashtable(int size)
 {
-
-};
-
-Hashtable new_hashtable(int size)
-{
-    Hashtable ht = (Hashtable) malloc(sizeof(struct hashtable));
+    hashtable ht = (hashtable) malloc(sizeof(struct _hashtable));
     ht->size=size;
     ht->buckets = (void**) calloc(sizeof(void*),size);
     ht->count = 0;
     return ht;
 }
 
-void ht_insert(Hashtable ht, void* element, uint (*hashfun)(void*), void (*chain)(void*,void*))
+void ht_insert(hashtable ht, void* element, uint (*hashfun)(void*), void (*chain)(void*,void*))
 {
     uint hash = hashfun(element);
     int index = hash % ht->size;
@@ -75,3 +72,22 @@ void ht_insert(Hashtable ht, void* element, uint (*hashfun)(void*), void (*chain
     ht->count++;
 }
 
+void ht_free(hashtable ht, void (*entry_free)(void*))
+{
+    for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
+    {
+        // {
+        //     if(i >= ht->size)
+        //     fprintf(stderr, "Error freeing hashtable\nht->size=%d\nht->count=%d\ni=%d", ht->size, ht->count, i);
+        // }
+        if(ht->buckets[i] != NULL)
+        {
+            entry_free(ht->buckets[i]);
+            ht->count--;
+        }
+    }
+}
+
+void ht_link_free(void* entry);
+void ht_rel_free(void* entry);
+void ht_ent_free(void* entry);

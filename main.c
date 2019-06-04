@@ -4,11 +4,20 @@
 #include "commands.h"
 
 #define MAXLEN 128
+#define PRIME_SMALL 31
+#define PRIME_K 1021
+#define PRIME_M 1048573
+
+hashtable link_ht, ent_ht, rel_ht;
+
 
 int main(int argc, char* argv[])
 {
     //INIT OPS
     char line[MAXLEN + 1];
+    link_ht = new_hashtable(PRIME_K);
+    ent_ht = new_hashtable(PRIME_K);
+    rel_ht = new_hashtable(PRIME_SMALL);
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, stdin), "end\n"))
@@ -46,5 +55,8 @@ int main(int argc, char* argv[])
         else
             exit(666);
     }
-
+    //FREE OPS
+    ht_free(link_ht, ht_link_free);
+    ht_free(ent_ht, ht_ent_free);
+    ht_free(rel_ht, ht_ent_free);
 }

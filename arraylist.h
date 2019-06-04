@@ -26,7 +26,7 @@ void relarray_remove(relarray arl, int index, byte mask)
 {
     if(index >= arl->size) return;
     arl->array[index] &= !mask;
-    if(arl->array[index] == 0b0)
+    if(arl->array[index] == 0)
     {
         arl->count--;
     }
