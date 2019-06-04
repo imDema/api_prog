@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "commands.h"
+#include "structures.h"
 
 #define MAXLEN 128
 #define PRIME_SMALL 31

@@ -1,7 +1,7 @@
 #include<stdlib.h>
-#define RELARRAY_DEFAULTSIZE 4
+#define ARRAYLIST_DEFAULTSIZE 4
 
-typedef u_int8_t byte;
+typedef unsigned char byte;
 struct _relarray
 {
     byte* array;
@@ -41,8 +41,52 @@ void relarray_free(relarray arl)
 relarray new_relarray()
 {
     relarray arl = (relarray) malloc(sizeof(struct _relarray));
-    arl->array = (byte*) calloc(RELARRAY_DEFAULTSIZE,sizeof(byte));
-    arl->size = RELARRAY_DEFAULTSIZE;
+    arl->array = (byte*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(byte));
+    arl->size = ARRAYLIST_DEFAULTSIZE;
     arl->count = 0;
     return arl;
+}
+
+struct _countarray
+{
+    int* array;
+    int size;
+    int count;
+};
+typedef struct _countarray * countarray;
+
+
+int countarray_increase(countarray acl, int index)
+{
+    if(index >= acl->size)
+    {
+        while(acl->size < index)
+            acl->size <<= 1;
+        acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
+    }
+    return ++acl->array[index];
+}
+
+int countarray_reduce(countarray acl, int index)
+{
+    if(index >= acl->size) return 0;
+    if(acl->array[index]-1 == 0)
+        acl->count--;
+    
+    return --acl->array[index];
+}
+
+void countarray_free(countarray acl)
+{
+    free(acl->array);
+    free(acl);
+}
+
+countarray new_countarray()
+{
+    countarray acl = (countarray) malloc(sizeof(struct _countarray));
+    acl->array = (int*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
+    acl->size = ARRAYLIST_DEFAULTSIZE;
+    acl->count = 0;
+    return acl;
 }

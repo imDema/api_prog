@@ -1,6 +1,5 @@
 #include<stdlib.h>
 #include<stdio.h>
-#include "arraylist.h"
 
 #define HASH_A 31
 
@@ -9,8 +8,6 @@
 #define OFFSET_LOWER -61 //- 'a' + 'Z' - 'A' + '9' - '0' + 2;
 #define UNDERSCORE 62
 #define DASH 63
-
-typedef unsigned int uint;
 
 int hashchar(char c)
 {
@@ -87,7 +84,3 @@ void ht_free(hashtable ht, void (*entry_free)(void*))
         }
     }
 }
-
-void ht_link_free(void* entry);
-void ht_rel_free(void* entry);
-void ht_ent_free(void* entry);

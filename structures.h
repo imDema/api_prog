@@ -1,42 +1,48 @@
 #include <stdlib.h>
+#include "arraylist.h"
 
-struct node
+struct _link_item
 {
-    int complete;
-    struct node** refs[4];
-    int inbound;
+    struct _link_item* next;
+    relarray relations;
 };
-typedef struct node* Node;
+typedef struct _link_item* link_item;
 
-int hashchar(char c);
-Node new_node();
-void insert(Node root, char* word)
+void ht_link_free(void* entry)
 {
-    if(word[0] == '\0' || word[0] == '\n')
-    {
-        root->complete = 1;
-    }
-    else
-    {
-        int k = hashchar(word[0]);
-        int div = k/4;
-        int mod = k%16;
-        if(root->refs[div] == NULL)
-        {
-            root->refs[div] = (Node *)calloc(16,sizeof(Node));
-        }
-        if(root->refs[div][mod] == NULL)
-        {
-            root->refs[div][mod] = new_node();
-        }
-        insert(root->refs[div][mod], word+1);
-    }
-    
+    link_item item = (link_item) entry;
+    if(item->next != NULL)
+        ht_link_free(item->next);
+    relarray_free(item->relations);
+    free(item);
 }
 
-Node new_node()
+
+struct _ll_links
 {
-    Node n = (Node) calloc(1 , sizeof(struct node));
-    return n;
+    link_item link;
+    struct _ll_links* next;
+};
+typedef struct _ll_links* ll_node_links;
+
+void ll_free(ll_node_links item)
+{
+    if(item->next != NULL) ll_free(item->next);
+    ht_link_free(item->link);
 }
 
+struct _ent_item
+{
+    ll_node_links links;
+    countarray relcounts;
+};
+typedef struct _ent_item* ent_item;
+
+void ht_ent_free(void* entry)
+{
+    ent_item item = (ent_item) entry;
+    countarray_free(item->relcounts);
+    ll_free(item->links);
+}
+
+void ht_rel_free(void* entry);
