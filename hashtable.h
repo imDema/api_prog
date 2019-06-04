@@ -1,6 +1,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include "structures.h"
+#include "commands.h"
 
 #define HASH_A 31
 

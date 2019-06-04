@@ -14,6 +14,13 @@
     + Arraylist: `arraylist[k]` contains the number of entering relations for the `k`th relation (in order of addition)
 + Used for entity deletion and max tracking
 
+### Relation list
++ `count` parameter for number of relations
++ Entry:
+    + `index` nonce id for relations
+    + `id_rel`
+    + Link to top list
+
 ## Auxilliary
 ### Top Cache
 
