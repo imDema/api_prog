@@ -1,9 +1,14 @@
 #include<stdlib.h>
 #include<stdio.h>
-#include "structures.h"
-#include "commands.h"
+#include "arraylist.h"
 
 #define HASH_A 31
+
+#define OFFSET_UPPER -65 // -'A';
+#define OFFSET_NUMBER -22 // -'0' + 'z'-'a' + 1
+#define OFFSET_LOWER -61 //- 'a' + 'Z' - 'A' + '9' - '0' + 2;
+#define UNDERSCORE 62
+#define DASH 63
 
 int hashchar(char c)
 {
@@ -35,7 +40,7 @@ uint hash(char* word)
 
 struct hashtable
 {
-    void** bucket;
+    void** buckets;
     int count;
     int size;
 };
@@ -50,14 +55,23 @@ Hashtable new_hashtable(int size)
 {
     Hashtable ht = (Hashtable) malloc(sizeof(struct hashtable));
     ht->size=size;
-    ht->bucket = (void**) calloc(sizeof(void*),size);
+    ht->buckets = (void**) calloc(sizeof(void*),size);
     ht->count = 0;
     return ht;
 }
 
-void ht_insert(Hashtable ht, void* element, uint (*hashfun)(void*))
+void ht_insert(Hashtable ht, void* element, uint (*hashfun)(void*), void (*chain)(void*,void*))
 {
     uint hash = hashfun(element);
     int index = hash % ht->size;
-    
+    if(ht->buckets[index] == NULL)
+    {
+        ht->buckets[index] = element;
+    }
+    else
+    {
+        chain(ht->buckets[index], element);
+    }
+    ht->count++;
 }
+

@@ -1,11 +1,5 @@
 #include <stdlib.h>
 
-#define OFFSET_UPPER -65 // -'A';
-#define OFFSET_NUMBER -22 // -'0' + 'z'-'a' + 1
-#define OFFSET_LOWER -61 //- 'a' + 'Z' - 'A' + '9' - '0' + 2;
-#define UNDERSCORE 62
-#define DASH 63
-
 struct node
 {
     int complete;
