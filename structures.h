@@ -50,6 +50,7 @@ ent_item new_ent_item(char* id_ent)
 {
     ent_item ent = (ent_item)calloc(1,sizeof(struct _ent_item));
     ent->id_ent = id_ent;
+    ent->relcounts = new_countarray();
     return ent;
 }
 

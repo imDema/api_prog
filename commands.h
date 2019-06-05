@@ -7,14 +7,18 @@ void addent(hashtable ent_ht, char* id_ent)
     
     //Return if item exists, else get last chain item (or NULL if empty)
     ent_item item = (ent_item)ent_ht->buckets[index];
-    if(!strcmp(item->id_ent, id_ent)) return;
-    while(item->next != NULL)
+    if(item != NULL)
     {
-        if(!strcmp(item->next->id_ent, id_ent))
-            return;
-        item = item->next;
+        if(!strcmp(item->id_ent, id_ent)) return;
+        while(item->next != NULL)
+        {
+            if(!strcmp(item->next->id_ent, id_ent))
+                return;
+            item = item->next;
+        }
     }
 
+    ent_ht->count++;
     //Add if it doesn't exist
     ent_item newent = new_ent_item(id_ent);
     if(item != NULL)

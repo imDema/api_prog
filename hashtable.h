@@ -1,4 +1,4 @@
-#define HASH_A 31
+#define HASH_A 33
 
 #define OFFSET_UPPER -65 // -'A';
 #define OFFSET_NUMBER -22 // -'0' + 'z'-'a' + 1
@@ -26,7 +26,7 @@ int hashchar(char c)
 
 uint hash(char* word)
 {
-    uint h = 0;
+    uint h = 5381;
     for(int i = 0; word[i]; i++)
     {
         h = (h*HASH_A) + word[i]; //ALLOW OVERFLOW
