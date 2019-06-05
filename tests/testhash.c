@@ -1,18 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../structures.h"
+#include "../hashtable.h"
 
 
-int main(void) {
+int main(int argc, char* argv[]) {
 	// your code goes here
-	char c = '_';
-    char str[4];
-    int i = 0;
-
-	while(fgets(str, 4, stdin))
+    char str[128];
+	if (argc != 2)
 	{
-		c = str[0];
-		printf("%c:%d\n", c, hash(c) - i++);
+		fprintf(stderr, "SPECIFY MODULE IN argv\n");
+		exit(66);
 	}
+	int mod = atoi(argv[1]);
+
+	FILE* outptr = fopen("tests/hashed.txt","w+");
+	FILE* inptr = fopen("tests/words.txt","r");
+
+	while(fgets(str, 128, inptr))
+	{
+		fprintf(outptr,"%08x\n", hash(str) % mod);
+	}
+
+	fclose(outptr);
+	fclose(inptr);
 	return 0;
 }
