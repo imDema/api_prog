@@ -9,6 +9,8 @@
 #define PRIME_K 1021
 #define PRIME_M 1048573
 
+typedef unsigned int uint;
+
 hashtable link_ht, ent_ht, rel_ht;
 
 
@@ -16,8 +18,8 @@ int main(int argc, char* argv[])
 {
     //INIT OPS
     char line[MAXLEN + 1];
-    link_ht = new_hashtable(PRIME_K);
-    ent_ht = new_hashtable(PRIME_K);
+    link_ht = new_hashtable(PRIME_SMALL);
+    ent_ht = new_hashtable(PRIME_SMALL);
     rel_ht = new_hashtable(PRIME_SMALL);
 
     //START READING INPUTS

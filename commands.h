@@ -6,8 +6,30 @@
 void addent(char* id_ent)
 {
     //Calculate hash
+    uint h = hash(id_ent);
     //Search entry in entity ht
-        //Add if it doesn't exist
+    int index = h % ent_ht->size;
+    
+    //Return if item exists, else get last chain item (or NULL if empty)
+    ent_item item = (ent_item)ent_ht->buckets[index];
+    if(!strcmp(item->id_ent, id_ent)) return;
+    while(item->next != NULL)
+    {
+        if(!strcmp(item->next->id_ent, id_ent))
+            return;
+        item = item->next;
+    }
+    
+    //Add if it doesn't exist
+    ent_item newent = new_ent_item(id_ent);
+    if(item != NULL)
+    {
+        item->next = newent;
+    }
+    else
+    {
+        ent_ht->buckets[index] = newent;
+    }
 }
 
 void delent(char* id_ent)

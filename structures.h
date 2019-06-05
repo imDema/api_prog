@@ -42,6 +42,20 @@ struct _ent_item
 };
 typedef struct _ent_item* ent_item;
 
+void* ht_ent_search(hashtable ht ,char* word)
+{
+    uint h = hash(word);
+    int bucket = h % ht->size;
+    return ht->buckets[bucket];
+}
+
+ent_item new_ent_item(char* id_ent)
+{
+    ent_item ent = (ent_item)calloc(1,sizeof(struct _ent_item));
+    ent->id_ent = id_ent;
+    return ent;
+}
+
 void ht_ent_free(void* entry)
 {
     ent_item item = (ent_item) entry;
@@ -73,7 +87,13 @@ typedef struct _rel_item* rel_item;
 void ht_rel_free(void* entry)
 {
     rel_item item = (rel_item) entry;
-    //TODO free toplsìist
+    tl_free(item->top);
     free(item->id_rel);
     free(item);
+}
+
+void tl_free(toplist tl)
+{
+    if(tl->next != NULL) tl_free(tl->next);
+    free(tl);
 }
