@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include "arraylist.h"
-
 struct _link_item
 {
     char* id_link;
@@ -75,6 +72,12 @@ struct _toplist
 };
 typedef struct _toplist* toplist;
 
+void tl_free(toplist tl)
+{
+    if(tl->next != NULL) tl_free(tl->next);
+    free(tl);
+}
+
 struct _rel_item
 {
     char* id_rel;
@@ -90,10 +93,4 @@ void ht_rel_free(void* entry)
     tl_free(item->top);
     free(item->id_rel);
     free(item);
-}
-
-void tl_free(toplist tl)
-{
-    if(tl->next != NULL) tl_free(tl->next);
-    free(tl);
 }

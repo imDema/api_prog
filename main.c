@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "commands.h"
+#include "arraylist.h"
+#include "hashtable.h"
 #include "structures.h"
+#include "commands.h"
 
 #define MAXLEN 128
 #define PRIME_SMALL 31
@@ -11,13 +13,14 @@
 
 typedef unsigned int uint;
 
-hashtable link_ht, ent_ht, rel_ht;
 
 
 int main(int argc, char* argv[])
 {
     //INIT OPS
     char line[MAXLEN + 1];
+
+    hashtable link_ht, ent_ht, rel_ht;
     link_ht = new_hashtable(PRIME_SMALL);
     ent_ht = new_hashtable(PRIME_SMALL);
     rel_ht = new_hashtable(PRIME_SMALL);
@@ -30,7 +33,7 @@ int main(int argc, char* argv[])
         if(!strcmp(opcode, "addent")) //ADDENT
         {
             char* id_ent = strtok(NULL, " \"");
-            addent(id_ent);
+            addent(ent_ht, id_ent);
         }
         else if (!strcmp(opcode, "delent")) //DELENT
         {

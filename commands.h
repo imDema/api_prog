@@ -1,9 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "hashtable.h"
-
-void addent(char* id_ent)
+void addent(hashtable ent_ht, char* id_ent)
 {
     //Calculate hash
     uint h = hash(id_ent);
@@ -19,7 +14,7 @@ void addent(char* id_ent)
             return;
         item = item->next;
     }
-    
+
     //Add if it doesn't exist
     ent_item newent = new_ent_item(id_ent);
     if(item != NULL)

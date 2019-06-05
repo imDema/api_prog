@@ -1,6 +1,3 @@
-#include<stdlib.h>
-#include<stdio.h>
-
 #define HASH_A 31
 
 #define OFFSET_UPPER -65 // -'A';

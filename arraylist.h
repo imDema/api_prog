@@ -1,4 +1,3 @@
-#include<stdlib.h>
 #define ARRAYLIST_DEFAULTSIZE 4
 
 typedef unsigned char byte;
