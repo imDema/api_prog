@@ -6,6 +6,13 @@ struct _link_item
 };
 typedef struct _link_item* link_item;
 
+link_item new_linkitem(char* uid)
+{
+    link_item item = (link_item) calloc(1,sizeof(struct _link_item));
+    item->id_link = uid;
+    return item;
+}
+
 void ht_link_free(void* entry)
 {
     link_item item = (link_item) entry;
