@@ -10,7 +10,7 @@ struct _relarray
 typedef struct _relarray* relarray;
 
 
-void relarray_add(relarray arl, int index, byte mask)
+int relarray_add(relarray arl, int index, byte mask)
 {
     if(index >= arl->size)
     {
@@ -18,13 +18,15 @@ void relarray_add(relarray arl, int index, byte mask)
             arl->size <<= 1;
         arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
     }
+    int newcreated = !(arl->array[index] & mask);
     arl->array[index] |= mask;
+    return newcreated;
 }
 
 void relarray_remove(relarray arl, int index, byte mask)
 {
     if(index >= arl->size) return;
-    arl->array[index] &= !mask;
+    arl->array[index] &= ~mask;
     if(arl->array[index] == 0)
     {
         arl->count--;

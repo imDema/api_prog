@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
             char* id_orig = strtok(NULL, " \"");
             char* id_dest = strtok(NULL, " \"");
             char* id_rel = strtok(NULL, " \"");
-            addrel(id_orig,id_dest,id_rel);
+            addrel(ent_ht, link_ht, rel_ht, id_orig,id_dest,id_rel);
         }
         else if (!strcmp(opcode, "delrel")) //DELREL
         {

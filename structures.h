@@ -16,24 +16,31 @@ void ht_link_free(void* entry)
     free(item);
 }
 
-
 struct _ll_links
 {
     link_item link;
     struct _ll_links* next;
 };
-typedef struct _ll_links* ll_node_links;
+typedef struct _ll_links* ll_node;
 
-void ll_free(ll_node_links item)
+void ll_free(ll_node item)
 {
     if(item->next != NULL) ll_free(item->next);
     ht_link_free(item->link);
 }
 
+ll_node ll_insert(ll_node root, link_item item)
+{
+    ll_node newnode = (ll_node) malloc(sizeof(struct _ll_links));
+    newnode->next = root;
+    newnode->link = item;
+    return newnode;
+}
+
 struct _ent_item
 {
     char* id_ent;
-    ll_node_links links;
+    ll_node links;
     countarray relcounts;
     struct _ent_item* next;
 };
@@ -43,7 +50,14 @@ void* ht_ent_search(hashtable ht ,char* word)
 {
     uint h = hash(word);
     int bucket = h % ht->size;
-    return ht->buckets[bucket];
+    ent_item item = (ent_item) ht->buckets[bucket];
+    while(item != NULL)
+    {
+        if(!strcmp(item->id_ent, word))
+            return item;
+        item = item->next;
+    }
+    return item;
 }
 
 ent_item new_ent_item(char* id_ent)
@@ -81,12 +95,20 @@ void tl_free(toplist tl)
 
 struct _rel_item
 {
+    struct _rel_item* next;
     char* id_rel;
     int index;
     int active_count;
     toplist top;
 };
 typedef struct _rel_item* rel_item;
+
+rel_item new_rel_item(hashtable ht, char* rel_id)
+{
+    rel_item item = calloc(1, sizeof(struct _rel_item));
+    item->index = ht->count++;
+    return item;
+}
 
 void ht_rel_free(void* entry)
 {

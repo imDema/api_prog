@@ -34,6 +34,22 @@ uint hash(char* word)
     return h;
 }
 
+char* uidof(char* a, char* b)
+{
+    char *first, *second;
+    first = strcmp(a,b) < 0 ? a : b;
+    second = first == a ? b : a;
+
+    int l1 = strlen(first), l2 = strlen(second);
+    char* uid = (char*)malloc(l1+l2+2);
+    strcpy(uid, a);
+    uid[l1] = '!';
+    strcpy(uid,b);
+    uid[l1+l2+1] = '\0';
+
+    return uid;
+}
+
 struct _hashtable
 {
     void** buckets;
