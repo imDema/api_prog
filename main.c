@@ -28,30 +28,30 @@ int main(int argc, char* argv[])
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, stdin), "end\n"))
     {
-        char* opcode = strtok(line, " \"");
+        char* opcode = strtok(line, " \"\n");
 
         if(!strcmp(opcode, "addent")) //ADDENT
         {
-            char* id_ent = strtok(NULL, " \"");
+            char* id_ent = strtok(NULL, " \"\n");
             addent(ent_ht, id_ent);
         }
         else if (!strcmp(opcode, "delent")) //DELENT
         {
-            char* id_ent = strtok(NULL, " \"");
+            char* id_ent = strtok(NULL, " \"\n");
             delent(id_ent);
         }
         else if (!strcmp(opcode, "addrel")) //ADDREL
         {
-            char* id_orig = strtok(NULL, " \"");
-            char* id_dest = strtok(NULL, " \"");
-            char* id_rel = strtok(NULL, " \"");
+            char* id_orig = strtok(NULL, " \"\n");
+            char* id_dest = strtok(NULL, " \"\n");
+            char* id_rel = strtok(NULL, " \"\n");
             addrel(ent_ht, link_ht, rel_ht, id_orig,id_dest,id_rel);
         }
         else if (!strcmp(opcode, "delrel")) //DELREL
         {
-            char* id_orig = strtok(NULL, " \"");
-            char* id_dest = strtok(NULL, " \"");
-            char* id_rel = strtok(NULL, " \"");
+            char* id_orig = strtok(NULL, " \"\n");
+            char* id_dest = strtok(NULL, " \"\n");
+            char* id_rel = strtok(NULL, " \"\n");
             delrel(id_orig,id_dest,id_rel);
         }
         else if (!strcmp(opcode, "report")) //REPORT

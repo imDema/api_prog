@@ -62,7 +62,7 @@ hashtable new_hashtable(int size)
 {
     hashtable ht = (hashtable) malloc(sizeof(struct _hashtable));
     ht->size=size;
-    ht->buckets = (void**) calloc(sizeof(void*),size);
+    ht->buckets = (void**) calloc(size, sizeof(void*));
     ht->count = 0;
     return ht;
 }

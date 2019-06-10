@@ -1,3 +1,5 @@
+#define MAXLEN 128
+
 struct _link_item
 {
     char* id_link;
@@ -9,7 +11,8 @@ typedef struct _link_item* link_item;
 link_item new_linkitem(char* uid)
 {
     link_item item = (link_item) calloc(1,sizeof(struct _link_item));
-    item->id_link = uid;
+    item->id_link = strndup(uid,MAXLEN);
+    item->relations = new_relarray();
     return item;
 }
 
@@ -70,7 +73,8 @@ void* ht_ent_search(hashtable ht ,char* word)
 ent_item new_ent_item(char* id_ent)
 {
     ent_item ent = (ent_item)calloc(1,sizeof(struct _ent_item));
-    ent->id_ent = id_ent;
+    
+    ent->id_ent = strndup(id_ent, MAXLEN);
     ent->relcounts = new_countarray();
     return ent;
 }
@@ -113,6 +117,7 @@ typedef struct _rel_item* rel_item;
 rel_item new_rel_item(hashtable ht, char* rel_id)
 {
     rel_item item = calloc(1, sizeof(struct _rel_item));
+    item->id_rel = strndup(rel_id, MAXLEN);
     item->index = ht->count++;
     return item;
 }
