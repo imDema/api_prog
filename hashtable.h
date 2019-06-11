@@ -86,10 +86,6 @@ void ht_free(hashtable ht, int (*entry_free)(void*))
 {
     for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
     {
-        // {
-        //     if(i >= ht->size)
-        //     fprintf(stderr, "Error freeing hashtable\nht->size=%d\nht->count=%d\ni=%d", ht->size, ht->count, i);
-        // }
         if(ht->buckets[i] != NULL)
         {
             ht->count -= entry_free(ht->buckets[i]);

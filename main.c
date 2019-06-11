@@ -4,6 +4,7 @@
 #include "arraylist.h"
 #include "hashtable.h"
 #include "structures.h"
+#include "toplist.h"
 #include "commands.h"
 
 #define MAXLEN 128
@@ -57,7 +58,7 @@ int main(int argc, char* argv[])
         }
         else if (!strcmp(opcode, "report")) //REPORT
         {
-            report();
+            report(rel_ht, link_ht, ent_ht);
         }
         else
             exit(666);

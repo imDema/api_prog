@@ -172,11 +172,105 @@ void delrel(char* id_orig, char* id_dest, char* id_rel)
     //TODO: Update max lists
 }
 
-void report()
+int comp_rel(const void* r1, const void* r2)
+{
+    char* id1 = (*(rel_item*)r1)->id_rel;
+    char* id2 = (*(rel_item*)r2)->id_rel;
+    return strcmp(id1,id2);
+}
+
+void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
 {
     //Sort relation entries
-        //qsort()
-    //If count == 0 skip
-    //Query max lists to get top element
-    //Print
+    rel_item* relations = malloc(rel_ht->count * sizeof(rel_item));
+
+    int k = 0, cnt = rel_ht->count;
+    
+    //checkmask, remove if toplist active
+    int active = 0;
+    int* checkmask = malloc(cnt * sizeof(int));
+    topitem* tl = (topitem*)malloc(cnt * sizeof(topitem));
+    //checkmask
+    for(int i = 0; k < cnt; i++) //IF STUFF CRASHES IT'S BECAUSE cnt is wrong
+    {
+        for (rel_item ri = (rel_item)rel_ht->buckets[i]; ri != NULL; ri = ri->next)
+        {
+            relations[k++] = ri;
+            if(ri->active_count > 0)
+                checkmask[active++] = ri->index;
+        }
+    }
+    
+    if(active > 0)
+    {
+        qsort(relations, cnt, sizeof(rel_item), comp_rel);
+        for(int i = 0; i<cnt; i++)
+            tl[i] = new_topitem(NULL,0);
+
+        ///////TODO do not do this
+
+        //Build top arrays
+        
+        //Iterate over all ht entities
+        for(int i = 0, left = ent_ht->count; left > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
+        {
+            for(ent_item entity = ent_ht->buckets[i]; entity != NULL; entity = entity->next)
+            {
+                left--;
+                //for each active relation index
+                for(int j = 0; j<active; j++)
+                {
+                    int index = checkmask[j];
+                    
+                    //if the current entity entering relation count is higher or equal to the top found
+                    int x;
+                    if(entity->relcounts->size > index && (x = entity->relcounts->array[index]) > 0 && x >= tl[index]->val) //Possible error here
+                    {
+                        //If equal enqueue
+                        if(x == tl[index]->val)
+                        {
+                            topitem newitem = new_topitem(entity, x);
+                            topitem k = tl[index];
+                            //Proceed until k is the greatest node smaller than new one
+                            while(k->next != NULL && strcmp(newitem->item->id_ent, k->item->id_ent) > 0)
+                                k = k->next;
+                            //Stitch new node between k and k->next
+                            newitem->next = k->next;
+                            k->next = newitem;
+                        }
+                        //If greater
+                        else
+                        {
+                            //Free the current list
+                            free_topitem_list(tl[index]);
+                            //Put new one on top of the list
+                            topitem newitem = new_topitem(entity, x);
+                            tl[index] = newitem;
+                        }
+                    }
+                }
+            }
+        }
+        //Print
+        for(int i = 0; i < cnt; i++)
+        {
+            if(relations[i]->active_count > 0)
+            {
+                printf("\"%s\" ", relations[i]->id_rel);
+                for(topitem ti = tl[i]; ti != NULL; ti = ti->next)
+                {
+                    printf("\"%s\" ", ti->item->id_ent);//FIX EXCESS SPACE
+                }
+                printf("%d; ", tl[i]->val);
+            }
+        }
+        printf("\n");
+    }
+    else
+        printf("none\n");
+    
+    free(checkmask);
+    for(int i=0; i<cnt; i++)
+        free_topitem_list(tl[i]);
+    free(tl);
 }
