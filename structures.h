@@ -17,6 +17,58 @@ link_item new_linkitem(char* uid)
     return item;
 }
 
+link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
+{
+    //Calculate combined hash
+    char* uid = uidof(ent_orig->id_ent, ent_dest->id_ent);
+
+    uint h = hash(uid);
+    //Search entry in link hashtable
+    int index = h % link_ht->size;
+
+    link_item link = NULL;
+    link_item found = (link_item) link_ht->buckets[index];
+
+    //If the bucket is not empty
+    if(found != NULL)
+    {
+        //Look for item in bucket with the uid we are looking for
+        if(!strcmp(uid, found->id_link))
+            link = found;
+        else while (found->next != NULL)
+        {
+            found = found->next;
+            if(!strcmp(uid, found->id_link))
+            {
+                link = found;
+                break;
+            }
+        }
+        //If link is still NULL, we havent found it, so we create a new link item and place it in the list
+        if(link == NULL)
+        {
+            link = new_linkitem(uid);
+            found->next = link;
+
+            //Add link pointer to both entities entries list
+            ll_insert(ent_orig->links, link);
+            ll_insert(ent_dest->links, link);
+        }
+    }
+    //The bucket is empty, so we create a new link item and point the bucket to it
+    else
+    {
+        link = new_linkitem(uid);
+        link_ht->buckets[index] = link;
+        
+        //Add link pointer to both entities entries list
+        //TODO Sometimes links not set
+        ent_orig->links = ll_insert(ent_orig->links, link);
+        //ent_dest->links = ll_insert(ent_dest->links, link);
+    }
+    return link;
+}
+
 int ht_link_free(void* entry)
 {
     link_item item = (link_item) entry;
@@ -129,6 +181,45 @@ rel_item new_rel_item(hashtable ht, char* rel_id)
     item->index = ht->count++;
     item->active_count = 0;
     item->top = NULL; //TODO INIT
+    return item;
+}
+
+rel_item create_relation(hashtable rel_ht, char* id_rel)
+{
+    //Check relation list in rel_ht
+    uint h = hash(id_rel);
+    int index = h % rel_ht->size;
+
+    rel_item item = rel_ht->buckets[index];
+    //If the bucket is not empty
+    if(item != NULL)
+    {
+        rel_item rel = (rel_item) rel_ht->buckets[index];
+        if(!strcmp(id_rel, rel->id_rel))
+            item = rel;
+        else while (rel->next != NULL)
+        {
+            rel = rel->next;
+            if(!strcmp(id_rel, rel->id_rel))
+            {
+                item = rel;
+                break;
+            }
+        }
+        
+        //If it doesn't create a new entry and increment nonce
+        if(item == NULL)
+        {
+            item = new_rel_item(rel_ht, id_rel);
+            rel->next = item;
+        }
+    }
+    //The bucket is empty, so we create a new relation item and point the bucket to it
+    else
+    {
+        item = new_rel_item(rel_ht, id_rel);
+        rel_ht->buckets[index] = item;
+    }
     return item;
 }
 
