@@ -1,14 +1,14 @@
 default: build
 
 CC = gcc
-CFLAGS = -std=gnu11 -Wall -static -pipe -s
+CFLAGS = -std=gnu11 -Wall -pipe
 MAIN = main.c
 
 build:
-	$(CC) $(MAIN) $(CFLAGS) -O2 -o main
+	$(CC) $(CFLAGS) -O2 -s -static -o main $(MAIN)
 
 debug:
-	$(CC) $(MAIN) $(CFLAGS) -Wuninitialized -Werror -pedantic -g3 -o main
+	$(CC) $(CFLAGS) -Wuninitialized -Werror -pedantic -g3 -o main $(MAIN)
 
 test:
-	$(CC) tests/testhash.c $(CFLAGS) -O2 -o tests/testhash.out
+	$(CC) $(CFLAGS) -O2 -o tests/testhash.out tests/testhash.c

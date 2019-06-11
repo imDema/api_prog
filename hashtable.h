@@ -60,7 +60,7 @@ typedef struct _hashtable* hashtable;
 
 hashtable new_hashtable(int size)
 {
-    hashtable ht = (hashtable) malloc(sizeof(struct _hashtable));
+    hashtable ht = malloc(sizeof(struct _hashtable));
     ht->size=size;
     ht->buckets = (void**) calloc(size, sizeof(void*));
     ht->count = 0;

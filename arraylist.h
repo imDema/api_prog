@@ -41,7 +41,7 @@ void relarray_free(relarray arl)
 
 relarray new_relarray()
 {
-    relarray arl = (relarray) malloc(sizeof(struct _relarray));
+    relarray arl = malloc(sizeof(struct _relarray));
     arl->array = (byte*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(byte));
     arl->size = ARRAYLIST_DEFAULTSIZE;
     arl->count = 0;
@@ -87,7 +87,7 @@ void countarray_free(countarray acl)
 
 countarray new_countarray()
 {
-    countarray acl = (countarray) malloc(sizeof(struct _countarray));
+    countarray acl = malloc(sizeof(struct _countarray));
     acl->array = (int*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
     acl->size = ARRAYLIST_DEFAULTSIZE;
     acl->count = 0;

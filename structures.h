@@ -2,9 +2,9 @@
 
 struct _link_item
 {
+    struct _link_item* next;
     char* id_link;
     relarray relations;
-    struct _link_item* next;
 };
 typedef struct _link_item* link_item;
 
@@ -52,10 +52,10 @@ ll_node ll_insert(ll_node root, link_item item)
 
 struct _ent_item
 {
+    struct _ent_item* next;
     char* id_ent;
     ll_node links;
     countarray relcounts;
-    struct _ent_item* next;
 };
 typedef struct _ent_item* ent_item;
 
@@ -75,9 +75,10 @@ void* ht_ent_search(hashtable ht ,char* word)
 
 ent_item new_ent_item(char* id_ent)
 {
-    ent_item ent = (ent_item)calloc(1,sizeof(struct _ent_item));
-    
+    ent_item ent = malloc(sizeof(struct _ent_item));
+    ent->next = NULL;
     ent->id_ent = strndup(id_ent, MAXLEN);
+    ent->links = NULL;
     ent->relcounts = new_countarray();
     return ent;
 }
@@ -122,9 +123,12 @@ typedef struct _rel_item* rel_item;
 
 rel_item new_rel_item(hashtable ht, char* rel_id)
 {
-    rel_item item = calloc(1, sizeof(struct _rel_item));
+    rel_item item = malloc(sizeof(struct _rel_item));
+    item->next = NULL;
     item->id_rel = strndup(rel_id, MAXLEN);
     item->index = ht->count++;
+    item->active_count = 0;
+    item->top = NULL; //TODO INIT
     return item;
 }
 
