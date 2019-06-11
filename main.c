@@ -7,6 +7,7 @@
 #include "commands.h"
 
 #define MAXLEN 128
+#define PRIME_DEBUG 17
 #define PRIME_SMALL 31
 #define PRIME_K 1021
 #define PRIME_M 1048573
@@ -21,9 +22,9 @@ int main(int argc, char* argv[])
     char line[MAXLEN + 1];
 
     hashtable link_ht, ent_ht, rel_ht;
-    link_ht = new_hashtable(PRIME_SMALL);
-    ent_ht = new_hashtable(PRIME_SMALL);
-    rel_ht = new_hashtable(PRIME_SMALL);
+    link_ht = new_hashtable(PRIME_DEBUG);
+    ent_ht = new_hashtable(PRIME_DEBUG);
+    rel_ht = new_hashtable(PRIME_DEBUG);
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, stdin), "end\n"))
@@ -64,5 +65,5 @@ int main(int argc, char* argv[])
     //FREE OPS
     ht_free(link_ht, ht_link_free);
     ht_free(ent_ht, ht_ent_free);
-    ht_free(rel_ht, ht_ent_free);
+    ht_free(rel_ht, ht_rel_free);
 }

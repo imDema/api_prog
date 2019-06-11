@@ -126,8 +126,9 @@ link_item create_link(hashtable link_ht, ent_item ent1, ent_item ent2)
         link_ht->buckets[index] = link;
         
         //Add link pointer to both entities entries list
-        ll_insert(ent1->links, link);
-        ll_insert(ent2->links, link);
+        //TODO Sometimes links not set
+        ent1->links = ll_insert(ent1->links, link);
+        //ent2->links = ll_insert(ent2->links, link);
     }
     return link;
 }
@@ -147,11 +148,15 @@ void addrel(hashtable ent_ht, hashtable link_ht, hashtable rel_ht,
 
     //At this point 'link' holds the node of the corrisponding link, either an existing one or a new one
     byte mask = strcmp(id_orig,id_dest) < 0 ? FROM_FIRST : FROM_SECOND;
+    //TODO CHECK IF CREATED WORKS PROPERLY
     int created = relarray_add(link->relations, relitem->index, mask);
 
-    //Set active relation arraylist to proper value (update count)
+    //Set active relation arraylist to proper value TODO! Update entity relarray count
     if(created)
+    {
         relitem->active_count++;
+        countarray_increase(ent1->relcounts, relitem->index);
+    }
 
     //TODO: Update max lists 
 }

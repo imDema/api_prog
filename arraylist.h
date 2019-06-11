@@ -1,4 +1,4 @@
-#define ARRAYLIST_DEFAULTSIZE 4
+#define ARRAYLIST_DEFAULTSIZE 2
 
 typedef unsigned char byte;
 struct _relarray
@@ -65,6 +65,8 @@ int countarray_increase(countarray acl, int index)
             acl->size <<= 1;
         acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
     }
+    //If it's the first for this kind of relation increase count of active relations
+    if(acl->array[index] == 0) acl->count++;
     return ++acl->array[index];
 }
 

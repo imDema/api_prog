@@ -10,20 +10,23 @@ typedef struct _link_item* link_item;
 
 link_item new_linkitem(char* uid)
 {
-    link_item item = (link_item) calloc(1,sizeof(struct _link_item));
+    link_item item = (link_item) malloc(sizeof(struct _link_item));
+    item->next = NULL;
     item->id_link = strndup(uid,MAXLEN);
     item->relations = new_relarray();
     return item;
 }
 
-void ht_link_free(void* entry)
+int ht_link_free(void* entry)
 {
     link_item item = (link_item) entry;
+    int cnt = 1;
     if(item->next != NULL)
-        ht_link_free(item->next);
+        cnt += ht_link_free(item->next);
     relarray_free(item->relations);
     free(item->id_link);
     free(item);
+    return cnt;
 }
 
 struct _ll_links
@@ -79,13 +82,15 @@ ent_item new_ent_item(char* id_ent)
     return ent;
 }
 
-void ht_ent_free(void* entry)
+int ht_ent_free(void* entry)
 {
     ent_item item = (ent_item) entry;
-    if(item->next != NULL) ht_ent_free(item->next);
+    int cnt = 1;
+    if(item->next != NULL) cnt += ht_ent_free(item->next);
     countarray_free(item->relcounts);
     free(item->id_ent);
-    ll_free(item->links);
+    if (item->links != NULL) ll_free(item->links);
+    return cnt;
 }
 
 struct _toplist
@@ -98,9 +103,10 @@ struct _toplist
 };
 typedef struct _toplist* toplist;
 
+//TODO
 void tl_free(toplist tl)
 {
-    if(tl->next != NULL) tl_free(tl->next);
+    //if(tl->next != NULL) tl_free(tl->next);
     free(tl);
 }
 
@@ -122,10 +128,13 @@ rel_item new_rel_item(hashtable ht, char* rel_id)
     return item;
 }
 
-void ht_rel_free(void* entry)
+int ht_rel_free(void* entry)
 {
     rel_item item = (rel_item) entry;
+    int cnt = 1;
+    if(item->next != NULL) cnt += ht_rel_free(item->next);
     tl_free(item->top);
     free(item->id_rel);
     free(item);
+    return cnt;
 }

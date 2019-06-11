@@ -42,9 +42,9 @@ char* uidof(char* a, char* b)
 
     int l1 = strlen(first), l2 = strlen(second);
     char* uid = (char*)malloc(l1+l2+2);
-    strcpy(uid, a);
-    uid[l1] = '!';
-    strcpy(uid,b);
+    strcpy(uid, first);
+    uid[l1] = '+';
+    strcpy(uid + l1 + 1, second);
     uid[l1+l2+1] = '\0';
 
     return uid;
@@ -82,7 +82,7 @@ void ht_insert(hashtable ht, void* element, uint (*hashfun)(void*), void (*chain
     ht->count++;
 }
 
-void ht_free(hashtable ht, void (*entry_free)(void*))
+void ht_free(hashtable ht, int (*entry_free)(void*))
 {
     for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
     {
@@ -92,8 +92,8 @@ void ht_free(hashtable ht, void (*entry_free)(void*))
         // }
         if(ht->buckets[i] != NULL)
         {
-            entry_free(ht->buckets[i]);
-            ht->count--;
+            ht->count -= entry_free(ht->buckets[i]);
         }
     }
+    free(ht);
 }
