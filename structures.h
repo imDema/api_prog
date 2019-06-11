@@ -8,6 +8,51 @@ struct _link_item
 };
 typedef struct _link_item* link_item;
 
+struct _ll_links
+{
+    link_item link;
+    struct _ll_links* next;
+};
+typedef struct _ll_links* ll_node;
+
+struct _ent_item
+{
+    struct _ent_item* next;
+    char* id_ent;
+    ll_node links;
+    countarray relcounts;
+};
+typedef struct _ent_item* ent_item;
+
+struct _toplist
+{
+    struct _toplist* next;
+    int value;
+    int size;
+    int count;
+    ent_item item;
+};
+typedef struct _toplist* toplist;
+
+struct _rel_item
+{
+    struct _rel_item* next;
+    char* id_rel;
+    int index;
+    int active_count;
+    toplist top;
+};
+typedef struct _rel_item* rel_item;
+
+
+ll_node ll_insert(ll_node root, link_item item)
+{
+    ll_node newnode = (ll_node) malloc(sizeof(struct _ll_links));
+    newnode->next = root;
+    newnode->link = item;
+    return newnode;
+}
+
 link_item new_linkitem(char* uid)
 {
     link_item item = (link_item) malloc(sizeof(struct _link_item));
@@ -81,35 +126,11 @@ int ht_link_free(void* entry)
     return cnt;
 }
 
-struct _ll_links
-{
-    link_item link;
-    struct _ll_links* next;
-};
-typedef struct _ll_links* ll_node;
-
 void ll_free(ll_node item)
 {
     if(item->next != NULL) ll_free(item->next);
     ht_link_free(item->link);
 }
-
-ll_node ll_insert(ll_node root, link_item item)
-{
-    ll_node newnode = (ll_node) malloc(sizeof(struct _ll_links));
-    newnode->next = root;
-    newnode->link = item;
-    return newnode;
-}
-
-struct _ent_item
-{
-    struct _ent_item* next;
-    char* id_ent;
-    ll_node links;
-    countarray relcounts;
-};
-typedef struct _ent_item* ent_item;
 
 void* ht_ent_search(hashtable ht ,char* word)
 {
@@ -146,15 +167,6 @@ int ht_ent_free(void* entry)
     return cnt;
 }
 
-struct _toplist
-{
-    struct _toplist* next;
-    int value;
-    int size;
-    int count;
-    ent_item item;
-};
-typedef struct _toplist* toplist;
 
 //TODO
 void tl_free(toplist tl)
@@ -162,16 +174,6 @@ void tl_free(toplist tl)
     //if(tl->next != NULL) tl_free(tl->next);
     free(tl);
 }
-
-struct _rel_item
-{
-    struct _rel_item* next;
-    char* id_rel;
-    int index;
-    int active_count;
-    toplist top;
-};
-typedef struct _rel_item* rel_item;
 
 rel_item new_rel_item(hashtable ht, char* rel_id)
 {
