@@ -112,7 +112,6 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
     
     if(active > 0)
     {
-        qsort(relations, cnt, sizeof(rel_item), comp_rel);
         for(int i = 0; i<cnt; i++)
             tl[i] = new_topitem(NULL,0);
 
@@ -160,17 +159,18 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
                 }
             }
         }
+        qsort(relations, cnt, sizeof(rel_item), comp_rel);
         //Print
         for(int i = 0; i < cnt; i++)
         {
             if(relations[i]->active_count > 0)
             {
                 printf("\"%s\" ", relations[i]->id_rel);
-                for(topitem ti = tl[i]; ti != NULL; ti = ti->next)
+                for(topitem ti = tl[relations[i]->index]; ti != NULL; ti = ti->next)
                 {
-                    printf("\"%s\" ", ti->item->id_ent);//FIX EXCESS SPACE
+                    printf("\"%s\" ", ti->item->id_ent);
                 }
-                printf("%d; ", tl[i]->val);
+                printf("%d; ", tl[relations[i]->index]->val);
             }
         }
         printf("\n");
