@@ -88,9 +88,15 @@ int comp_rel(const void* r1, const void* r2)
     return strcmp(id1,id2);
 }
 
+int cmpstr(const void* a, const void* b)
+{
+    const char* aa = *(const char**)a;
+    const char* bb = *(const char**)b;
+    return strcmp(aa,bb);
+}
+
 void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
 {
-    //Sort relation entries
     rel_item* relations = malloc(rel_ht->count * sizeof(rel_item));
 
     int k = 0, cnt = rel_ht->count;
@@ -118,61 +124,39 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
         ///////TODO do not do this
 
         //Build top arrays
+        gen_top(ent_ht, tl, checkmask, active);
         
-        //Iterate over all ht entities
-        for(int i = 0, left = ent_ht->count; left > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
-        {
-            for(ent_item entity = ent_ht->buckets[i]; entity != NULL; entity = entity->next)
-            {
-                left--;
-                //for each active relation index
-                for(int j = 0; j<active; j++)
-                {
-                    int index = checkmask[j];
-                    
-                    //if the current entity entering relation count is higher or equal to the top found
-                    int x;
-                    if(entity->relcounts->size > index && (x = entity->relcounts->array[index]) > 0 && x >= tl[index]->val) //Possible error here
-                    {
-                        //If equal enqueue
-                        if(x == tl[index]->val)
-                        {
-                            topitem newitem = new_topitem(entity, x);
-                            topitem k = tl[index];
-                            //Proceed until k is the greatest node smaller than new one
-                            while(k->next != NULL && strcmp(newitem->item->id_ent, k->item->id_ent) > 0)
-                                k = k->next;
-                            //Stitch new node between k and k->next
-                            newitem->next = k->next;
-                            k->next = newitem;
-                        }
-                        //If greater
-                        else
-                        {
-                            //Free the current list
-                            free_topitem_list(tl[index]);
-                            //Put new one on top of the list
-                            topitem newitem = new_topitem(entity, x);
-                            tl[index] = newitem;
-                        }
-                    }
-                }
-            }
-        }
         qsort(relations, cnt, sizeof(rel_item), comp_rel);
         //Print
+        int size = 4;
+        char** ar = malloc(size * sizeof(char*));
         for(int i = 0; i < cnt; i++)
         {
             if(relations[i]->active_count > 0)
             {
+                int count = 0;
                 printf("\"%s\" ", relations[i]->id_rel);
+
+                
                 for(topitem ti = tl[relations[i]->index]; ti != NULL; ti = ti->next)
                 {
-                    printf("\"%s\" ", ti->item->id_ent);
+                    if(count == size)
+                    {
+                        size <<= 1;
+                        ar = realloc(ar, size * sizeof(char*));
+                    }
+                    ar[count++] = ti->item->id_ent;
+                }
+                qsort(ar,count,sizeof(char*),cmpstr);
+                for(int j = 0; j < count; j++)
+                {
+                    printf("\"%s\" ", ar[j]);
                 }
                 printf("%d; ", tl[relations[i]->index]->val);
+                
             }
         }
+        free(ar);
         printf("\n");
     }
     else
@@ -182,4 +166,5 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
     for(int i=0; i<cnt; i++)
         free_topitem_list(tl[i]);
     free(tl);
+    free(relations);
 }

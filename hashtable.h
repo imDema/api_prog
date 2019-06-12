@@ -91,5 +91,6 @@ void ht_free(hashtable ht, int (*entry_free)(void*))
             ht->count -= entry_free(ht->buckets[i]);
         }
     }
+    free(ht->buckets);
     free(ht);
 }

@@ -3,7 +3,7 @@
 struct _link_item
 {
     struct _link_item* next;
-    char* id_link;
+    char* uid;
     relarray relations;
 };
 typedef struct _link_item* link_item;
@@ -57,7 +57,7 @@ link_item new_linkitem(char* uid)
 {
     link_item item = (link_item) malloc(sizeof(struct _link_item));
     item->next = NULL;
-    item->id_link = strndup(uid,MAXLEN);
+    item->uid = uid;
     item->relations = new_relarray();
     return item;
 }
@@ -72,33 +72,29 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
     int index = h % link_ht->size;
 
     link_item link = NULL;
-    link_item found = (link_item) link_ht->buckets[index];
+    link_item head_ptr = (link_item)link_ht->buckets[index];
 
     //If the bucket is not empty
-    if(found != NULL)
+    //Look for item in bucket with the uid we are looking for
+    for(link_item current = head_ptr; current != NULL; current = current->next)
     {
-        //Look for item in bucket with the uid we are looking for
-        if(!strcmp(uid, found->id_link))
-            link = found;
-        else while (found->next != NULL)
+        if(!strcmp(uid, current->uid))
         {
-            found = found->next;
-            if(!strcmp(uid, found->id_link))
-            {
-                link = found;
-                break;
-            }
+            link = current;
+            free(uid);
+            break;
         }
-        //If link is still NULL, we havent found it, so we create a new link item and place it in the list
-        if(link == NULL)
-        {
-            link = new_linkitem(uid);
-            found->next = link;
+    }
+    //If link is still NULL, we havent found it, so we create a new link item and place it in the list
+    if(link == NULL)
+    {
+        link = new_linkitem(uid);
+        link->next = head_ptr;
+        head_ptr = link;
 
-            //Add link pointer to both entities entries list
-            ll_insert(ent_orig->links, link);
-            ll_insert(ent_dest->links, link);
-        }
+        //Add link pointer to both entities entries list
+        ent_orig->links = ll_insert(ent_orig->links, link);
+        //ll_insert(ent_dest->links, link);
     }
     //The bucket is empty, so we create a new link item and point the bucket to it
     else
@@ -121,7 +117,7 @@ int ht_link_free(void* entry)
     if(item->next != NULL)
         cnt += ht_link_free(item->next);
     relarray_free(item->relations);
-    free(item->id_link);
+    free(item->uid);
     free(item);
     return cnt;
 }
@@ -129,7 +125,8 @@ int ht_link_free(void* entry)
 void ll_free(ll_node item)
 {
     if(item->next != NULL) ll_free(item->next);
-    ht_link_free(item->link);
+    ht_link_free(item->link); //TODO Check if this freeing is cool
+    free(item);
 }
 
 void* ht_ent_search(hashtable ht ,char* word)
@@ -164,6 +161,7 @@ int ht_ent_free(void* entry)
     countarray_free(item->relcounts);
     free(item->id_ent);
     if (item->links != NULL) ll_free(item->links);
+    free(item);
     return cnt;
 }
 
