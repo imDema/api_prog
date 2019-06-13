@@ -90,6 +90,7 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
 
     //Add link pointer to entity with exiting relation
     ent_orig->links = ll_insert(ent_orig->links, link);
+    ent_dest->links = ll_insert(ent_dest->links, link);
     
     return link;
 }
@@ -205,6 +206,17 @@ rel_item create_relation(hashtable rel_ht, char* id_rel)
         rel_ht->buckets[index] = item;
     }
     return item;
+}
+
+rel_item ht_rel_search(hashtable ht_rel, char* id_rel)
+{
+    uint index = hash(id_rel) % ht_rel->size;
+    rel_item item = (rel_item)ht_rel->buckets[index];
+    for(rel_item item = (rel_item)ht_rel->buckets[index]; item != NULL; item = item->next)
+        if(!strcmp(id_rel, item->id_rel))
+            return item;
+
+    return NULL;
 }
 
 int ht_rel_free(void* entry)

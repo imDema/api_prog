@@ -5,7 +5,7 @@ CFLAGS = -std=gnu11 -Wall -pipe
 MAIN = main.c
 
 build:
-	$(CC) $(CFLAGS) -O2 -s -static -o main $(MAIN)
+	$(CC) $(CFLAGS) -O2 -s -o main $(MAIN)
 
 debug:
 	$(CC) $(CFLAGS) -Wuninitialized -Werror -pedantic -g3 -o main $(MAIN)

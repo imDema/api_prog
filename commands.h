@@ -70,12 +70,39 @@ void addrel(hashtable ent_ht, hashtable link_ht, hashtable rel_ht,
     //TODO: Update max lists 
 }
 
-void delrel(char* id_orig, char* id_dest, char* id_rel)
+void delrel(hashtable rel_ht, hashtable link_ht, hashtable ent_ht, char* id_orig, char* id_dest, char* id_rel)
 {
     //Calculate combined hash
+    char* uid = uidof(id_orig, id_dest);
+    int index = hash(uid) % link_ht->size;
+    
+
     //Search entry in link hashtable
-        //Skip if it does not exist
+    link_item link;
+    for(link = link_ht->buckets[index]; link != NULL; link = link->next)
+    {
+        if(!strcmp(uid, link->uid))
+            break;
+    }
+    free(uid);
+    
+    //Skip if it does not exist
+    if(link == NULL) return;
+
     //Update arraylist entry if needed
+    byte mask = strcmp(id_orig,id_dest) < 0 ? FROM_FIRST : FROM_SECOND;
+
+    ent_item ent_dest = (ent_item)ht_ent_search(ent_ht,id_dest);
+    if(ent_dest == NULL) fprintf(stderr, "Error deleting relation, destination entity does not exist\n");
+
+    if(!relarray_remove(link->relations, index, mask)) return;
+    
+    countarray_reduce(ent_dest->relcounts, index);
+
+    ht_rel_search(rel_ht, id_rel)->active_count--;
+
+    //if(link->relations->count == 0) ht_link_free() TODO free link
+
     //Reduce count if arraylist entry becomes 0
     //If count is 0 delete link entry
     //TODO: Update max lists

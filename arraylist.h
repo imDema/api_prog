@@ -23,14 +23,15 @@ int relarray_add(relarray arl, int index, byte mask)
     return newcreated;
 }
 
-void relarray_remove(relarray arl, int index, byte mask)
+int relarray_remove(relarray arl, int index, byte mask)
 {
     if(index >= arl->size) return;
+
+    int deleted = arl->array[index] & mask;
     arl->array[index] &= ~mask;
     if(arl->array[index] == 0)
-    {
         arl->count--;
-    }
+    return deleted;
 }
 
 void relarray_free(relarray arl)
