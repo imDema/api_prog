@@ -67,46 +67,29 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
     //Calculate combined hash
     char* uid = uidof(ent_orig->id_ent, ent_dest->id_ent);
 
-    uint h = hash(uid);
     //Search entry in link hashtable
-    int index = h % link_ht->size;
+    int index = hash(uid) % link_ht->size;
 
-    link_item link = NULL;
     link_item head_ptr = (link_item)link_ht->buckets[index];
 
-    //If the bucket is not empty
     //Look for item in bucket with the uid we are looking for
     for(link_item current = head_ptr; current != NULL; current = current->next)
     {
         if(!strcmp(uid, current->uid))
         {
-            link = current;
+            //If found return it
             free(uid);
-            break;
+            return current;
         }
     }
-    //If link is still NULL, we havent found it, so we create a new link item and place it in the list
-    if(link == NULL)
-    {
-        link = new_linkitem(uid);
-        link->next = head_ptr;
-        head_ptr = link;
+    //Since we haven't found it we create a new link item and place it in the list
+    link_item link = new_linkitem(uid);
+    link->next = head_ptr;
+    link_ht->buckets[index] = link;
 
-        //Add link pointer to both entities entries list
-        ent_orig->links = ll_insert(ent_orig->links, link);
-        //ll_insert(ent_dest->links, link);
-    }
-    //The bucket is empty, so we create a new link item and point the bucket to it
-    else
-    {
-        link = new_linkitem(uid);
-        link_ht->buckets[index] = link;
-        
-        //Add link pointer to both entities entries list
-        //TODO Sometimes links not set
-        ent_orig->links = ll_insert(ent_orig->links, link);
-        //ent_dest->links = ll_insert(ent_dest->links, link);
-    }
+    //Add link pointer to entity with exiting relation
+    ent_orig->links = ll_insert(ent_orig->links, link);
+    
     return link;
 }
 
@@ -125,7 +108,7 @@ int ht_link_free(void* entry)
 void ll_free(ll_node item)
 {
     if(item->next != NULL) ll_free(item->next);
-    ht_link_free(item->link); //TODO Check if this freeing is cool
+    //ht_link_free(item->link); //TODO Check if this freeing is cool
     free(item);
 }
 

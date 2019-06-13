@@ -37,8 +37,8 @@ void gen_top(hashtable ent_ht, topitem* tl, int* checkmask, int n)
                 int index = checkmask[j];
                 
                 //if the current entity entering relation count is higher or equal to the top found
-                int x;
-                if(entity->relcounts->size > index && (x = entity->relcounts->array[index]) > 0 && x >= tl[index]->val) //Possible error here
+                int x = entity->relcounts->array[index];
+                if(entity->relcounts->size > index && x > 0 && x >= tl[index]->val) //Possible error here
                 {
                     //If equal enqueue
                     if(x == tl[index]->val)
