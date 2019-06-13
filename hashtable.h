@@ -67,21 +67,6 @@ hashtable new_hashtable(int size)
     return ht;
 }
 
-void ht_insert(hashtable ht, void* element, uint (*hashfun)(void*), void (*chain)(void*,void*))
-{
-    uint hash = hashfun(element);
-    int index = hash % ht->size;
-    if(ht->buckets[index] == NULL)
-    {
-        ht->buckets[index] = element;
-    }
-    else
-    {
-        chain(ht->buckets[index], element);
-    }
-    ht->count++;
-}
-
 void ht_free(hashtable ht, int (*entry_free)(void*))
 {
     for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong

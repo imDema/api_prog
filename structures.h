@@ -86,6 +86,7 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
     link_item link = new_linkitem(uid);
     link->next = head_ptr;
     link_ht->buckets[index] = link;
+    link_ht->count++;
 
     //Add link pointer to entity with exiting relation
     ent_orig->links = ll_insert(ent_orig->links, link);
