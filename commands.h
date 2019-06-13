@@ -152,8 +152,8 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
                 {
                     printf("\"%s\" ", ar[j]);
                 }
-                printf("%d; ", tl[relations[i]->index]->val);
-                
+                printf("%d;", tl[relations[i]->index]->val);
+                if(cnt-i > 1) printf(" ");
             }
         }
         free(ar);
