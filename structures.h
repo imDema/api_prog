@@ -3,6 +3,7 @@
 struct _link_item
 {
     struct _link_item* next;
+    struct _link_item* prev;
     char* uid;
     relarray relations;
 };
@@ -57,6 +58,7 @@ link_item new_linkitem(char* uid)
 {
     link_item item = (link_item) malloc(sizeof(struct _link_item));
     item->next = NULL;
+    item->prev = NULL;
     item->uid = uid;
     item->relations = new_relarray();
     return item;
@@ -85,6 +87,7 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
     //Since we haven't found it we create a new link item and place it in the list
     link_item link = new_linkitem(uid);
     link->next = head_ptr;
+    head_ptr->prev = link;
     link_ht->buckets[index] = link;
     link_ht->count++;
 
@@ -95,16 +98,32 @@ link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
     return link;
 }
 
-int ht_link_free(void* entry)
+void free_link_item(hashtable ht, link_item item)
 {
-    link_item item = (link_item) entry;
-    int cnt = 1;
-    if(item->next != NULL)
-        cnt += ht_link_free(item->next);
     relarray_free(item->relations);
     free(item->uid);
     free(item);
-    return cnt;
+    ht->count--;
+}
+
+void _free_link_chain(hashtable ht, link_item link)
+{
+    if(link->next != NULL)
+        _free_link_chain(ht, link->next);
+    free_link_item(ht, link);
+}
+
+int ht_link_free(hashtable ht)
+{
+    for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
+    {
+        if(ht->buckets[i] != NULL)
+        {
+            _free_link_chain(ht, ht->buckets[i]);
+        }
+    }
+    free(ht->buckets);
+    free(ht);
 }
 
 void ll_free(ll_node item)

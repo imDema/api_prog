@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
         else if (!strcmp(opcode, "delent")) //DELENT
         {
             char* id_ent = strtok(NULL, " \"\n");
-            delent(id_ent);
+            delent(ent_ht, link_ht, id_ent);
         }
         else if (!strcmp(opcode, "addrel")) //ADDREL
         {
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
             char* id_orig = strtok(NULL, " \"\n");
             char* id_dest = strtok(NULL, " \"\n");
             char* id_rel = strtok(NULL, " \"\n");
-            delrel(id_orig,id_dest,id_rel);
+            delrel(rel_ht, link_ht, ent_ht, id_orig,id_dest,id_rel);
         }
         else if (!strcmp(opcode, "report")) //REPORT
         {
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
             exit(666);
     }
     //FREE OPS
-    ht_free(link_ht, ht_link_free);
+    ht_link_free(link_ht);
     ht_free(ent_ht, ht_ent_free);
     ht_free(rel_ht, ht_rel_free);
 }

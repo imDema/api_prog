@@ -34,9 +34,33 @@ void addent(hashtable ent_ht, char* id_ent)
     }
 }
 
-void delent(char* id_ent)
+void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
 {
     //Go to the entry in the entity hashtable
+    ent_item entity = ht_ent_search(ent_ht, id_ent);
+
+    if(entity == NULL) return;
+
+    for(ll_node ll_link = entity->links; ll_link != NULL; ll_link = ll_link->next)
+    {
+        link_item lnk = ll_link->link;
+
+        //TODO reduce relation active counts
+
+        if(lnk->prev == NULL)
+        {
+            lnk->next->prev = NULL;
+            uint index = hash(lnk->uid) % link_ht->size;
+            link_ht->buckets[index] = lnk->next;
+            free_link_item(link_ht, lnk);
+        }
+        else
+        {
+            lnk->prev->next = lnk->next;
+            if(lnk->next != NULL) lnk->next->prev = lnk->prev;
+            free_link_item(link_ht, lnk);
+        }
+    }
     //Iterate over links
     //Free link entries
     //Update top list
@@ -96,6 +120,22 @@ void delrel(hashtable rel_ht, hashtable link_ht, hashtable ent_ht, char* id_orig
     if(ent_dest == NULL) fprintf(stderr, "Error deleting relation, destination entity does not exist\n");
 
     if(!relarray_remove(link->relations, index, mask)) return;
+
+    if (link->relations->count == 0) //Free link
+    {
+        if(link->prev == NULL)
+        {
+            link->next->prev = NULL;
+            link_ht->buckets[index] = link->next;
+            free_link_item(link_ht, link);
+        }
+        else
+        {
+            link->prev->next = link->next;
+            if(link->next != NULL) link->next->prev = link->prev;
+            free_link_item(link_ht, link);
+        }
+    }
     
     countarray_reduce(ent_dest->relcounts, index);
 
