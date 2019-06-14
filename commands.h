@@ -1,37 +1,12 @@
 #define FROM_FIRST 0x1
 #define FROM_SECOND 0x2
 
-void addent(hashtable ent_ht, char* id_ent)
+void addent(direct_ht ht, char* id_ent)
 {
     //Calculate hash
     uint h = hash(id_ent);
-    //Search entry in entity ht
-    int index = h % ent_ht->size;
-    
-    //Return if item exists, else get last chain item (or NULL if empty)
-    ent_item item = (ent_item)ent_ht->buckets[index];
-    if(item != NULL)
-    {
-        if(!strcmp(item->id_ent, id_ent)) return;
-        while(item->next != NULL)
-        {
-            if(!strcmp(item->next->id_ent, id_ent))
-                return;
-            item = item->next;
-        }
-    }
-
-    ent_ht->count++;
-    //Add if it doesn't exist
-    ent_item newent = new_ent_item(id_ent);
-    if(item != NULL)
-    {
-        item->next = newent;
-    }
-    else
-    {
-        ent_ht->buckets[index] = newent;
-    }
+    direct_ht links = calloc(1, sizeof(struct _direct_ht));
+    ht_insert(ht, id_ent, links, h);
 }
 
 void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
@@ -66,29 +41,48 @@ void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
     //Update top list
 }
 
-void addrel(hashtable ent_ht, hashtable link_ht, hashtable rel_ht,
+void addrel(direct_ht ht, hashtable rel_ht,
                 char* id_orig, char* id_dest, char* id_rel)
 {
     //Check if both entities exist
-    ent_item ent_orig = ht_ent_search(ent_ht,id_orig), ent_dest = ht_ent_search(ent_ht,id_dest);
+    uint h_orig = hash(id_orig),
+        h_dest = hash(id_dest);
+    entity ent_orig = ht_search(ht, id_orig, h_orig),
+        ent_dest = ht_search(ht, id_dest, h_dest);
     if(ent_orig == NULL || ent_dest == NULL)
         return;
-
     
+    //Order them by id
+    char *first, *second;
+    first = strcmp(id_orig, id_dest) < 0 ? id_orig : id_dest;
+    second = first == id_orig ? id_dest : id_orig;
+    uint h_second = first == id_orig ? h_dest : h_orig;
+    
+    //Initialize link ht if needed
+    if(ent_orig->ht_links == NULL)
+        ent_orig->ht_links = new_direct_ht(DIRECT_HT_DEFAULT_SIZE);
+
+    direct_ht ht_orig = ent_orig->ht_links;
+    //Get the relation array for the link
+    relarray rar = ht_search(ht_orig, second, h_second);
+    if(rar == NULL)
+    {
+        //Initialize it if needed
+        rar = new_relarray();
+        ht_insert(ent_orig, second, rar, h_second);
+    }
+
+    //Get relation index        //TODO replace this
     rel_item relitem = create_relation(rel_ht, id_rel);
-    
-    link_item link = create_link(link_ht, ent_orig, ent_dest);
 
-    //At this point 'link' holds the node of the corrisponding link, either an existing one or a new one
     byte mask = strcmp(id_orig,id_dest) < 0 ? FROM_FIRST : FROM_SECOND;
-    //TODO CHECK IF CREATED WORKS PROPERLY
-    int created = relarray_add(link->relations, relitem->index, mask);
+    int created = relarray_add(rar, relitem->index, mask);
 
-    //Set active relation arraylist to proper value TODO! Update entity relarray count
+    //Set active relation arraylist to proper value
     if(created)
     {
         relitem->active_count++;
-        countarray_increase(ent_dest->relcounts, relitem->index);
+        countarray_increase(&(ent_dest->in_counts), relitem->index);
     }
 
     //TODO: Update max lists 

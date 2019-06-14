@@ -25,7 +25,7 @@ int relarray_add(relarray arl, int index, byte mask)
 
 int relarray_remove(relarray arl, int index, byte mask)
 {
-    if(index >= arl->size) return;
+    if(index >= arl->size) return 0;
 
     int deleted = arl->array[index] & mask;
     arl->array[index] &= ~mask;
@@ -60,6 +60,12 @@ typedef struct _countarray * countarray;
 
 int countarray_increase(countarray acl, int index)
 {
+    if(acl->array == NULL)
+    {
+        acl->array = (int*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
+        acl->size = ARRAYLIST_DEFAULTSIZE;
+        acl->count = 0;
+    }
     if(index >= acl->size)
     {
         while(acl->size < index)

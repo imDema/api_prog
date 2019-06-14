@@ -1,8 +1,6 @@
 #define HASH_A 33
 #define HASH_B 101
 
-#define DELETED 0x1
-
 const int primes_size = 72;
 const int primes[] = {
             3, 7, 11, 17, 23, 29, 37, 47, 59, 71, 89, 107, 131, 163, 197, 239, 293, 353, 431, 521, 631, 761, 919,
@@ -12,6 +10,7 @@ const int primes[] = {
             1674319, 2009191, 2411033, 2893249, 3471899, 4166287, 4999559, 5999471, 7199369 };
 
 #define LOADFAC 0.74f
+#define DIRECT_HT_DEFAULT_SIZE 3
 
 uint hash(char* word)
 {
@@ -23,19 +22,19 @@ uint hash(char* word)
     return h;
 }
 
-typedef struct bucket
+typedef struct bucket //20 bytes each
 {
     uint hash;
     char* key;
     void* value;
 } bucket;
 
-struct _direct_ht
+struct _direct_ht //20 bytes each
 {
     int count;
     int size;
     int loadsize;
-    struct bucket* buckets;
+    struct bucket* buckets;     //80 for default size
 };
 typedef struct _direct_ht* direct_ht;
 
@@ -49,7 +48,9 @@ int get_prime_size(int approx_size)
     int size;
     for(int s = 0; s < primes_size; s++)
         if(primes[s] >= approx_size)
-            break;
+        {
+            size = primes[s];
+        }
     return size;
 }
 
@@ -154,8 +155,7 @@ void ht_delete(direct_ht ht, char* key, uint hash)
             //Free key, set hash to 0 and mark as deleted by setting value to ht->bucket
             ht->buckets[index].hash = 0;
             ht->buckets[index].value = ht->buckets; //Marked as deleted to keep potential colliding walks intact
-            free(ht->buckets[index].key);
-            ht->buckets[index].key = NULL;
+            ht->buckets[index].key = NULL; //Possibly free it if strduped
             break;
         }
         else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket, item didn't exist
@@ -165,6 +165,11 @@ void ht_delete(direct_ht ht, char* key, uint hash)
     }
 }
 
+void ht_free(direct_ht ht)
+{
+    free(ht->buckets);
+    free(ht);
+}
 
 char* uidof(char* a, char* b)
 {

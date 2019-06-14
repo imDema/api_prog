@@ -1,5 +1,21 @@
 #define MAXLEN 128
 
+/////////NEW
+
+struct _entity
+{
+    direct_ht ht_links;
+    struct _countarray in_counts;
+};
+typedef struct _entity* entity;
+
+entity new_entity()
+{
+    return calloc(1, sizeof(struct _entity));
+}
+
+/////////NEW
+
 struct _link_item
 {
     struct _link_item* next;
