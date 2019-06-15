@@ -6,7 +6,47 @@ void addent(direct_ht ht, char* id_ent)
     //Calculate hash
     uint h = hash(id_ent);
     direct_ht links = calloc(1, sizeof(struct _direct_ht));
-    ht_insert(ht, id_ent, links, h);
+    ht_insert(ht, strndup(id_ent, MAXLEN), links, h);
+}
+
+void addrel(direct_ht ht, hashtable rel_ht,
+                char* id_orig, char* id_dest, char* id_rel)
+{
+    //Check if both entities exist
+    uint h_orig = hash(id_orig),
+        h_dest = hash(id_dest);
+    entity ent_orig = ht_search(ht, id_orig, h_orig),
+        ent_dest = ht_search(ht, id_dest, h_dest);
+    if(ent_orig == NULL || ent_dest == NULL)
+        return;
+    
+    //Initialize link ht if needed
+    if(ent_orig->ht_links == NULL)
+        ent_orig->ht_links = new_direct_ht(DIRECT_HT_DEFAULT_SIZE);
+
+    direct_ht ht_orig = ent_orig->ht_links;
+    //Get the relation array for the link
+    relarray rar = ht_search(ht_orig, id_dest, h_dest);
+    if(rar == NULL)
+    {
+        //Initialize it if needed
+        rar = new_relarray();
+        ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
+    }
+
+    //Get relation index        //TODO replace this
+    rel_item relitem = create_relation(rel_ht, id_rel);
+
+    int created = relarray_add(rar, relitem->index);
+
+    //Set active relation arraylist to proper value
+    if(created)
+    {
+        relitem->active_count++;
+        countarray_increase(&(ent_dest->in_counts), relitem->index);
+    }
+
+    //TODO: Update max lists 
 }
 
 void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
@@ -39,53 +79,6 @@ void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
     //Iterate over links
     //Free link entries
     //Update top list
-}
-
-void addrel(direct_ht ht, hashtable rel_ht,
-                char* id_orig, char* id_dest, char* id_rel)
-{
-    //Check if both entities exist
-    uint h_orig = hash(id_orig),
-        h_dest = hash(id_dest);
-    entity ent_orig = ht_search(ht, id_orig, h_orig),
-        ent_dest = ht_search(ht, id_dest, h_dest);
-    if(ent_orig == NULL || ent_dest == NULL)
-        return;
-    
-    //Order them by id
-    char *first, *second;
-    first = strcmp(id_orig, id_dest) < 0 ? id_orig : id_dest;
-    second = first == id_orig ? id_dest : id_orig;
-    uint h_second = first == id_orig ? h_dest : h_orig;
-    
-    //Initialize link ht if needed
-    if(ent_orig->ht_links == NULL)
-        ent_orig->ht_links = new_direct_ht(DIRECT_HT_DEFAULT_SIZE);
-
-    direct_ht ht_orig = ent_orig->ht_links;
-    //Get the relation array for the link
-    relarray rar = ht_search(ht_orig, second, h_second);
-    if(rar == NULL)
-    {
-        //Initialize it if needed
-        rar = new_relarray();
-        ht_insert(ent_orig, second, rar, h_second);
-    }
-
-    //Get relation index        //TODO replace this
-    rel_item relitem = create_relation(rel_ht, id_rel);
-
-    byte mask = strcmp(id_orig,id_dest) < 0 ? FROM_FIRST : FROM_SECOND;
-    int created = relarray_add(rar, relitem->index, mask);
-
-    //Set active relation arraylist to proper value
-    if(created)
-    {
-        relitem->active_count++;
-        countarray_increase(&(ent_dest->in_counts), relitem->index);
-    }
-
-    //TODO: Update max lists 
 }
 
 void delrel(hashtable rel_ht, hashtable link_ht, hashtable ent_ht, char* id_orig, char* id_dest, char* id_rel)

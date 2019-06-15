@@ -1,36 +1,44 @@
-#define ARRAYLIST_DEFAULTSIZE 2
+#define ARRAYLIST_DEFAULTSIZE 1
 
 typedef unsigned char byte;
 struct _relarray
 {
-    byte* array;
+    uint* array;
     int size;
     int count;
 };
 typedef struct _relarray* relarray;
 
+const int wsize = 8 * sizeof(uint);
 
-int relarray_add(relarray arl, int index, byte mask)
+int relarray_add(relarray arl, int index)
 {
     if(index >= arl->size)
     {
         while(arl->size < index)
             arl->size <<= 1;
-        arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
+        arl->array = realloc(arl->array, arl->size / (wsize) * sizeof(byte));
     }
-    int newcreated = !(arl->array[index] & mask);
-    arl->array[index] |= mask;
+    int i = index / wsize;
+    int j = index % wsize;
+    int newcreated = !((arl->array[index] >> j) & 0x1);
+    arl->array[index] |= (0x1 << j);
     return newcreated;
 }
 
-int relarray_remove(relarray arl, int index, byte mask)
+int relarray_remove(relarray arl, int index)
 {
     if(index >= arl->size) return 0;
+    
+    int i = index / wsize;
+    int j = index % wsize;
 
-    int deleted = arl->array[index] & mask;
-    arl->array[index] &= ~mask;
-    if(arl->array[index] == 0)
+    int deleted = (arl->array[index] >> j) & 0x1;
+    if(deleted)
+    {
+        arl->array[index] &= ~(0x1 << j);
         arl->count--;
+    }
     return deleted;
 }
 
@@ -43,8 +51,8 @@ void relarray_free(relarray arl)
 relarray new_relarray()
 {
     relarray arl = malloc(sizeof(struct _relarray));
-    arl->array = (byte*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(byte));
-    arl->size = ARRAYLIST_DEFAULTSIZE;
+    arl->array = calloc(ARRAYLIST_DEFAULTSIZE,sizeof(uint));
+    arl->size = ARRAYLIST_DEFAULTSIZE * wsize;
     arl->count = 0;
     return arl;
 }
