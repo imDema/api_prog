@@ -42,6 +42,27 @@ int relarray_remove(relarray arl, int index)
     return deleted;
 }
 
+int* relarray_get_active(relarray arl)
+{
+    int* result = malloc(arl -> count * sizeof(uint));
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    uint slider;
+    while(k < arl->count)
+    {
+        if(j == 0)
+            slider = arl->array[i++];
+        if(slider & 0x1)
+        {
+            result[k++] = i * wsize + j;    //Possible segfault if done wrong
+        }
+        slider >>= 1;
+        j = (j + 1) % wsize;
+    }
+    return result;
+}
+
 void relarray_free(relarray arl)
 {
     free(arl->array);

@@ -49,89 +49,101 @@ void addrel(direct_ht ht, hashtable rel_ht,
     //TODO: Update max lists 
 }
 
-void delent(hashtable ent_ht, hashtable link_ht, char* id_ent)
+void delent(direct_ht ht, rel_db relations, char* id_ent)
 {
     //Go to the entry in the entity hashtable
-    ent_item entity = ht_ent_search(ent_ht, id_ent);
+    uint h_ent = hash(id_ent);
+    entity ent = ht_search(ht, id_ent, h_ent);
 
-    if(entity == NULL) return;
+    if(ent == NULL) return;
 
-    for(ll_node ll_link = entity->links; ll_link != NULL; ll_link = ll_link->next)
+    //Update all outbound links relation counts and delete the links
+    for(int i = 0; i < ent->ht_links->size; i++)
     {
-        link_item lnk = ll_link->link;
-
-        //TODO reduce relation active counts
-
-        if(lnk->prev == NULL)
+        bucket bkt = ent->ht_links->buckets[i];
+        if(bkt.hash != 0) //If a valid link has been found
         {
-            lnk->next->prev = NULL;
-            uint index = hash(lnk->uid) % link_ht->size;
-            link_ht->buckets[index] = lnk->next;
-            free_link_item(link_ht, lnk);
+            entity dest = ht_search(ht, bkt.key, bkt.hash);
+
+            //Remove all outbound relations
+            relarray rar = bkt.value;
+            if(rar->count > 0) //Decrease count for every active relation on link
+            {
+                int* active_indexes = relarray_get_active(rar);
+                for(int j = 0; j < rar->count; j++)
+                {
+                    int index = active_indexes[j];
+                    //DEBUG
+                    if(dest->in_counts.array[index] < 1)
+                    fprintf(stderr, "Something has gone very wrong, trying to reduce %s relation from %s below 0", id_ent, bkt.key);
+                    //REMOVE
+                    dest->in_counts.array[index]--;
+                    relations->array[index].active_count--;
+                }
+                free(active_indexes);
+            }
+
+            free(rar);
+            //TODO If memory needed free all inverse links from dest
         }
-        else
+        
+        //Count orphaned relations and update relations active counts
+        countarray counts = &(ent->in_counts);
+        for(int j = 0, c = counts->count; j < counts->size && c > 0; j++)
         {
-            lnk->prev->next = lnk->next;
-            if(lnk->next != NULL) lnk->next->prev = lnk->prev;
-            free_link_item(link_ht, lnk);
+            int x = counts->array[j];
+            if(x > 0)
+            {
+                relations->array[j].active_count -= x;
+                relations->orphaned += x;
+                c--;
+            }
         }
+
+        //Free the entity
+        ht_free(ent->ht_links);
+        countarray_free(&(ent->in_counts));
+
+        ht_delete(ht, id_ent, h_ent);
     }
+
+    //TODO reduce relation active counts
     //Iterate over links
     //Free link entries
     //Update top list
 }
 
-void delrel(hashtable rel_ht, hashtable link_ht, hashtable ent_ht, char* id_orig, char* id_dest, char* id_rel)
+void delrel(direct_ht ht, hashtable rel_ht, char* id_orig, char* id_dest, char* id_rel)
 {
-    //Calculate combined hash
-    char* uid = uidof(id_orig, id_dest);
-    int index = hash(uid) % link_ht->size;
+    //Calculate hashes and verify existence
+    uint h_orig = hash(id_orig),
+        h_dest = hash(id_dest);
+    entity ent_orig = ht_search(ht, id_orig, h_orig),
+        ent_dest = ht_search(ht, id_dest, h_dest);
+    if(ent_orig == NULL || ent_dest == NULL)
+        return;
     
 
-    //Search entry in link hashtable
-    link_item link;
-    for(link = link_ht->buckets[index]; link != NULL; link = link->next)
-    {
-        if(!strcmp(uid, link->uid))
-            break;
-    }
-    free(uid);
+    //Search link
+    relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
     
     //Skip if it does not exist
-    if(link == NULL) return;
+    if(rar == NULL) return;
 
     //Update arraylist entry if needed
-    byte mask = strcmp(id_orig,id_dest) < 0 ? FROM_FIRST : FROM_SECOND;
+    rel_item relitem = create_relation(rel_ht, id_rel); //TODO REPLACE THIS
 
-    ent_item ent_dest = (ent_item)ht_ent_search(ent_ht,id_dest);
-    if(ent_dest == NULL) fprintf(stderr, "Error deleting relation, destination entity does not exist\n");
-
-    if(!relarray_remove(link->relations, index, mask)) return;
-
-    if (link->relations->count == 0) //Free link
+    if(relarray_remove(rar, relitem->index)) //If the relation existed remove it and update counts
     {
-        if(link->prev == NULL)
-        {
-            link->next->prev = NULL;
-            link_ht->buckets[index] = link->next;
-            free_link_item(link_ht, link);
-        }
-        else
-        {
-            link->prev->next = link->next;
-            if(link->next != NULL) link->next->prev = link->prev;
-            free_link_item(link_ht, link);
-        }
+        relitem->active_count--;
+        countarray_reduce(&(ent_dest->in_counts), relitem->index);
     }
-    
-    countarray_reduce(ent_dest->relcounts, index);
+    if(rar->count == 0) //Free the link
+    {
+        ht_delete(ent_orig->ht_links, id_dest, h_dest);
+        relarray_free(rar);
+    }
 
-    ht_rel_search(rel_ht, id_rel)->active_count--;
-
-    //if(link->relations->count == 0) ht_link_free() TODO free link
-
-    //Reduce count if arraylist entry becomes 0
-    //If count is 0 delete link entry
     //TODO: Update max lists
 }
 

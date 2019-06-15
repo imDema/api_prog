@@ -14,32 +14,22 @@ entity new_entity()
     return calloc(1, sizeof(struct _entity));
 }
 
+typedef struct _relation
+{
+    char* id_rel;
+    int active_count;
+    toplist tl;
+} relation;
+
+struct _rel_db
+{
+    relation* array;
+    direct_ht ht;
+    int orphaned;
+};
+typedef struct _rel_db* rel_db;
+
 /////////NEW
-
-struct _link_item
-{
-    struct _link_item* next;
-    struct _link_item* prev;
-    char* uid;
-    relarray relations;
-};
-typedef struct _link_item* link_item;
-
-struct _ll_links
-{
-    link_item link;
-    struct _ll_links* next;
-};
-typedef struct _ll_links* ll_node;
-
-struct _ent_item
-{
-    struct _ent_item* next;
-    char* id_ent;
-    ll_node links;
-    countarray relcounts;
-};
-typedef struct _ent_item* ent_item;
 
 struct _toplist
 {
@@ -47,7 +37,7 @@ struct _toplist
     int value;
     int size;
     int count;
-    ent_item item;
+    entity item;
 };
 typedef struct _toplist* toplist;
 
@@ -60,131 +50,6 @@ struct _rel_item
     toplist top;
 };
 typedef struct _rel_item* rel_item;
-
-
-ll_node ll_insert(ll_node root, link_item item)
-{
-    ll_node newnode = (ll_node) malloc(sizeof(struct _ll_links));
-    newnode->next = root;
-    newnode->link = item;
-    return newnode;
-}
-
-link_item new_linkitem(char* uid)
-{
-    link_item item = (link_item) malloc(sizeof(struct _link_item));
-    item->next = NULL;
-    item->prev = NULL;
-    item->uid = uid;
-    item->relations = new_relarray();
-    return item;
-}
-
-link_item create_link(hashtable link_ht, ent_item ent_orig, ent_item ent_dest)
-{
-    //Calculate combined hash
-    char* uid = uidof(ent_orig->id_ent, ent_dest->id_ent);
-
-    //Search entry in link hashtable
-    int index = hash(uid) % link_ht->size;
-
-    link_item head_ptr = (link_item)link_ht->buckets[index];
-
-    //Look for item in bucket with the uid we are looking for
-    for(link_item current = head_ptr; current != NULL; current = current->next)
-    {
-        if(!strcmp(uid, current->uid))
-        {
-            //If found return it
-            free(uid);
-            return current;
-        }
-    }
-    //Since we haven't found it we create a new link item and place it in the list
-    link_item link = new_linkitem(uid);
-    link->next = head_ptr;
-    head_ptr->prev = link;
-    link_ht->buckets[index] = link;
-    link_ht->count++;
-
-    //Add link pointer to entity with exiting relation
-    ent_orig->links = ll_insert(ent_orig->links, link);
-    ent_dest->links = ll_insert(ent_dest->links, link);
-    
-    return link;
-}
-
-void free_link_item(hashtable ht, link_item item)
-{
-    relarray_free(item->relations);
-    free(item->uid);
-    free(item);
-    ht->count--;
-}
-
-void _free_link_chain(hashtable ht, link_item link)
-{
-    if(link->next != NULL)
-        _free_link_chain(ht, link->next);
-    free_link_item(ht, link);
-}
-
-int ht_link_free(hashtable ht)
-{
-    for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
-    {
-        if(ht->buckets[i] != NULL)
-        {
-            _free_link_chain(ht, ht->buckets[i]);
-        }
-    }
-    free(ht->buckets);
-    free(ht);
-}
-
-void ll_free(ll_node item)
-{
-    if(item->next != NULL) ll_free(item->next);
-    //ht_link_free(item->link); //TODO Check if this freeing is cool
-    free(item);
-}
-
-void* ht_ent_search(hashtable ht ,char* word)
-{
-    uint h = hash(word);
-    int bucket = h % ht->size;
-    ent_item item = (ent_item) ht->buckets[bucket];
-    while(item != NULL)
-    {
-        if(!strcmp(item->id_ent, word))
-            return item;
-        item = item->next;
-    }
-    return item;
-}
-
-ent_item new_ent_item(char* id_ent)
-{
-    ent_item ent = malloc(sizeof(struct _ent_item));
-    ent->next = NULL;
-    ent->id_ent = strndup(id_ent, MAXLEN);
-    ent->links = NULL;
-    ent->relcounts = new_countarray();
-    return ent;
-}
-
-int ht_ent_free(void* entry)
-{
-    ent_item item = (ent_item) entry;
-    int cnt = 1;
-    if(item->next != NULL) cnt += ht_ent_free(item->next);
-    countarray_free(item->relcounts);
-    free(item->id_ent);
-    if (item->links != NULL) ll_free(item->links);
-    free(item);
-    return cnt;
-}
-
 
 //TODO
 void tl_free(toplist tl)
