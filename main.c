@@ -3,8 +3,8 @@
 #include <string.h>
 #include "arraylist.h"
 #include "hashtable.h"
+//#include "toplist.h"
 #include "structures.h"
-#include "toplist.h"
 #include "commands.h"
 
 #define MAXLEN 128
@@ -22,10 +22,8 @@ int main(int argc, char* argv[])
     //INIT OPS
     char line[MAXLEN + 1];
 
-    hashtable link_ht, ent_ht, rel_ht;
-    link_ht = new_hashtable(PRIME_DEBUG);
-    ent_ht = new_hashtable(PRIME_DEBUG);
-    rel_ht = new_hashtable(PRIME_DEBUG);
+    rel_db relations = new_rel_db();
+    direct_ht ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, stdin), "end\n"))
@@ -35,36 +33,35 @@ int main(int argc, char* argv[])
         if(!strcmp(opcode, "addent")) //ADDENT
         {
             char* id_ent = strtok(NULL, " \"\n");
-            addent(ent_ht, id_ent);
+            addent(ht,id_ent);
         }
         else if (!strcmp(opcode, "delent")) //DELENT
         {
             char* id_ent = strtok(NULL, " \"\n");
-            delent(ent_ht, link_ht, id_ent);
+            delent(ht, relations, id_ent);
         }
         else if (!strcmp(opcode, "addrel")) //ADDREL
         {
             char* id_orig = strtok(NULL, " \"\n");
             char* id_dest = strtok(NULL, " \"\n");
             char* id_rel = strtok(NULL, " \"\n");
-            addrel(ent_ht, link_ht, rel_ht, id_orig,id_dest,id_rel);
+            addrel(ht, relations, id_orig, id_dest, id_rel);
         }
         else if (!strcmp(opcode, "delrel")) //DELREL
         {
             char* id_orig = strtok(NULL, " \"\n");
             char* id_dest = strtok(NULL, " \"\n");
             char* id_rel = strtok(NULL, " \"\n");
-            delrel(rel_ht, link_ht, ent_ht, id_orig,id_dest,id_rel);
+            delrel(ht, relations, id_orig, id_dest, id_rel);
         }
         else if (!strcmp(opcode, "report")) //REPORT
         {
-            report(rel_ht, link_ht, ent_ht);
+            //report();
         }
         else
             exit(666);
     }
     //FREE OPS
-    ht_link_free(link_ht);
-    ht_free(ent_ht, ht_ent_free);
-    ht_free(rel_ht, ht_rel_free);
+    ht_free(ht);
+    rel_db_free(relations);
 }

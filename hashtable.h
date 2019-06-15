@@ -10,7 +10,7 @@ const int primes[] = {
             1674319, 2009191, 2411033, 2893249, 3471899, 4166287, 4999559, 5999471, 7199369 };
 
 #define LOADFAC 0.74f
-#define DIRECT_HT_DEFAULT_SIZE 3
+#define DEFAULT_DIRECT_HT_SIZE 3
 
 uint hash(char* word)
 {
@@ -50,6 +50,7 @@ int get_prime_size(int approx_size)
         if(primes[s] >= approx_size)
         {
             size = primes[s];
+            break;
         }
     return size;
 }
@@ -202,17 +203,4 @@ hashtable new_hashtable(int size)
     ht->buckets = (void**) calloc(size, sizeof(void*));
     ht->count = 0;
     return ht;
-}
-
-void ht_free(hashtable ht, int (*entry_free)(void*))
-{
-    for(int i = 0; ht->count > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
-    {
-        if(ht->buckets[i] != NULL)
-        {
-            ht->count -= entry_free(ht->buckets[i]);
-        }
-    }
-    free(ht->buckets);
-    free(ht);
 }

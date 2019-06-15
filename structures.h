@@ -1,4 +1,5 @@
 #define MAXLEN 128
+#define DEFAULT_REL_DB_ARR_SIZE 2
 
 /////////NEW
 
@@ -14,20 +15,72 @@ entity new_entity()
     return calloc(1, sizeof(struct _entity));
 }
 
-typedef struct _relation
+struct _relation
 {
     char* id_rel;
+    int index;
     int active_count;
-    toplist tl;
-} relation;
+    //toplist tl;
+};
+typedef struct _relation* relation;
+
 
 struct _rel_db
 {
-    relation* array;
+    struct _relation* array;
     direct_ht ht;
+    int size;
+    int count;
     int orphaned;
 };
 typedef struct _rel_db* rel_db;
+
+relation create_relation(rel_db relations, char* id_rel)
+{
+    //Check relation list in rel_ht
+    uint h = hash(id_rel);
+
+    relation rel = ht_search(relations->ht, id_rel, h);
+    
+    if(rel != NULL) return rel;
+
+    //Create new
+    if(relations->count == relations->size) //Expand if needed
+        relations->array = realloc(relations->array, 2 * relations->size * sizeof(struct _relation));
+    
+    //Set array element values
+    rel = &(relations->array[relations->count]);
+    rel->id_rel = strndup(id_rel, MAXLEN);
+    rel->index = relations->count;
+    relations->count++; //Increase virtual size
+
+    //Add array element to hashtable for lookups
+    ht_insert(relations->ht, rel->id_rel, rel, h);
+
+    return rel;
+}
+
+rel_db new_rel_db()
+{
+    rel_db relations = malloc(sizeof(struct _rel_db));
+    relations->array = calloc(DEFAULT_REL_DB_ARR_SIZE, sizeof(struct _relation));
+    relations->count = 0;
+    relations->size  = DEFAULT_REL_DB_ARR_SIZE;
+    relations->orphaned = 0;
+    relations->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
+    return relations;
+}
+
+void rel_db_free(rel_db relations)
+{
+    for(int i = 0; i < relations->count; i++)
+    {
+        free(relations->array[i].id_rel);
+        //free toplist
+    }
+    free(relations->array);
+    ht_free(relations->ht);
+}
 
 /////////NEW
 
@@ -56,76 +109,4 @@ void tl_free(toplist tl)
 {
     //if(tl->next != NULL) tl_free(tl->next);
     free(tl);
-}
-
-rel_item new_rel_item(hashtable ht, char* rel_id)
-{
-    rel_item item = malloc(sizeof(struct _rel_item));
-    item->next = NULL;
-    item->id_rel = strndup(rel_id, MAXLEN);
-    item->index = ht->count++;
-    item->active_count = 0;
-    item->top = NULL; //TODO INIT
-    return item;
-}
-
-rel_item create_relation(hashtable rel_ht, char* id_rel)
-{
-    //Check relation list in rel_ht
-    uint h = hash(id_rel);
-    int index = h % rel_ht->size;
-
-    rel_item item = rel_ht->buckets[index];
-    //If the bucket is not empty
-    if(item != NULL)
-    {
-        rel_item rel = (rel_item) rel_ht->buckets[index];
-        if(!strcmp(id_rel, rel->id_rel))
-            item = rel;
-        else while (rel->next != NULL)
-        {
-            rel = rel->next;
-            if(!strcmp(id_rel, rel->id_rel))
-            {
-                item = rel;
-                break;
-            }
-        }
-        
-        //If it doesn't create a new entry and increment nonce
-        if(item == NULL)
-        {
-            item = new_rel_item(rel_ht, id_rel);
-            rel->next = item;
-        }
-    }
-    //The bucket is empty, so we create a new relation item and point the bucket to it
-    else
-    {
-        item = new_rel_item(rel_ht, id_rel);
-        rel_ht->buckets[index] = item;
-    }
-    return item;
-}
-
-rel_item ht_rel_search(hashtable ht_rel, char* id_rel)
-{
-    uint index = hash(id_rel) % ht_rel->size;
-    rel_item item = (rel_item)ht_rel->buckets[index];
-    for(rel_item item = (rel_item)ht_rel->buckets[index]; item != NULL; item = item->next)
-        if(!strcmp(id_rel, item->id_rel))
-            return item;
-
-    return NULL;
-}
-
-int ht_rel_free(void* entry)
-{
-    rel_item item = (rel_item) entry;
-    int cnt = 1;
-    if(item->next != NULL) cnt += ht_rel_free(item->next);
-    tl_free(item->top);
-    free(item->id_rel);
-    free(item);
-    return cnt;
 }

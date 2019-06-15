@@ -1,15 +1,14 @@
-#define FROM_FIRST 0x1
-#define FROM_SECOND 0x2
-
 void addent(direct_ht ht, char* id_ent)
 {
     //Calculate hash
     uint h = hash(id_ent);
+
+    //TODO This is wrong, you need to allocate a relation instead and init it
     direct_ht links = calloc(1, sizeof(struct _direct_ht));
     ht_insert(ht, strndup(id_ent, MAXLEN), links, h);
 }
 
-void addrel(direct_ht ht, hashtable rel_ht,
+void addrel(direct_ht ht, rel_db relations,
                 char* id_orig, char* id_dest, char* id_rel)
 {
     //Check if both entities exist
@@ -22,7 +21,7 @@ void addrel(direct_ht ht, hashtable rel_ht,
     
     //Initialize link ht if needed
     if(ent_orig->ht_links == NULL)
-        ent_orig->ht_links = new_direct_ht(DIRECT_HT_DEFAULT_SIZE);
+        ent_orig->ht_links = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     direct_ht ht_orig = ent_orig->ht_links;
     //Get the relation array for the link
@@ -34,16 +33,16 @@ void addrel(direct_ht ht, hashtable rel_ht,
         ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
     }
 
-    //Get relation index        //TODO replace this
-    rel_item relitem = create_relation(rel_ht, id_rel);
+    //Get relation info
+    relation rel = create_relation(relations, id_rel);
 
-    int created = relarray_add(rar, relitem->index);
+    int created = relarray_add(rar, rel->index);
 
     //Set active relation arraylist to proper value
     if(created)
     {
-        relitem->active_count++;
-        countarray_increase(&(ent_dest->in_counts), relitem->index);
+        rel->active_count++;
+        countarray_increase(&(ent_dest->in_counts), rel->index);
     }
 
     //TODO: Update max lists 
@@ -75,7 +74,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
                     int index = active_indexes[j];
                     //DEBUG
                     if(dest->in_counts.array[index] < 1)
-                    fprintf(stderr, "Something has gone very wrong, trying to reduce %s relation from %s below 0", id_ent, bkt.key);
+                        fprintf(stderr, "Something has gone very wrong, trying to reduce %s relation from %s below 0", id_ent, bkt.key);
                     //REMOVE
                     dest->in_counts.array[index]--;
                     relations->array[index].active_count--;
@@ -113,7 +112,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     //Update top list
 }
 
-void delrel(direct_ht ht, hashtable rel_ht, char* id_orig, char* id_dest, char* id_rel)
+void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* id_rel)
 {
     //Calculate hashes and verify existence
     uint h_orig = hash(id_orig),
@@ -131,7 +130,7 @@ void delrel(direct_ht ht, hashtable rel_ht, char* id_orig, char* id_dest, char* 
     if(rar == NULL) return;
 
     //Update arraylist entry if needed
-    rel_item relitem = create_relation(rel_ht, id_rel); //TODO REPLACE THIS
+    relation relitem = create_relation(relations, id_rel); //TODO REPLACE THIS
 
     if(relarray_remove(rar, relitem->index)) //If the relation existed remove it and update counts
     {
@@ -163,74 +162,74 @@ int cmpstr(const void* a, const void* b)
 
 void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
 {
-    rel_item* relations = malloc(rel_ht->count * sizeof(rel_item));
+    // rel_item* relations = malloc(rel_ht->count * sizeof(rel_item));
 
-    int k = 0, cnt = rel_ht->count;
+    // int k = 0, cnt = rel_ht->count;
     
-    //checkmask, remove if toplist active
-    int active = 0;
-    int* checkmask = malloc(cnt * sizeof(int));
-    topitem* tl = (topitem*)malloc(cnt * sizeof(topitem));
-    //checkmask
-    for(int i = 0; k < cnt; i++) //IF STUFF CRASHES IT'S BECAUSE cnt is wrong
-    {
-        for (rel_item ri = (rel_item)rel_ht->buckets[i]; ri != NULL; ri = ri->next)
-        {
-            relations[k++] = ri;
-            if(ri->active_count > 0)
-                checkmask[active++] = ri->index;
-        }
-    }
+    // //checkmask, remove if toplist active
+    // int active = 0;
+    // int* checkmask = malloc(cnt * sizeof(int));
+    // topitem* tl = (topitem*)malloc(cnt * sizeof(topitem));
+    // //checkmask
+    // for(int i = 0; k < cnt; i++) //IF STUFF CRASHES IT'S BECAUSE cnt is wrong
+    // {
+    //     for (rel_item ri = (rel_item)rel_ht->buckets[i]; ri != NULL; ri = ri->next)
+    //     {
+    //         relations[k++] = ri;
+    //         if(ri->active_count > 0)
+    //             checkmask[active++] = ri->index;
+    //     }
+    // }
     
-    if(active > 0)
-    {
-        for(int i = 0; i<cnt; i++)
-            tl[i] = new_topitem(NULL,0);
+    // if(active > 0)
+    // {
+    //     for(int i = 0; i<cnt; i++)
+    //         tl[i] = new_topitem(NULL,0);
 
-        ///////TODO do not do this
+    //     ///////TODO do not do this
 
-        //Build top arrays
-        gen_top(ent_ht, tl, checkmask, active);
+    //     //Build top arrays
+    //     gen_top(ent_ht, tl, checkmask, active);
         
-        qsort(relations, cnt, sizeof(rel_item), comp_rel);
-        //Print
-        int size = 4;
-        char** ar = malloc(size * sizeof(char*));
-        for(int i = 0; i < cnt; i++)
-        {
-            if(relations[i]->active_count > 0)
-            {
-                int count = 0;
-                printf("\"%s\" ", relations[i]->id_rel);
+    //     qsort(relations, cnt, sizeof(rel_item), comp_rel);
+    //     //Print
+    //     int size = 4;
+    //     char** ar = malloc(size * sizeof(char*));
+    //     for(int i = 0; i < cnt; i++)
+    //     {
+    //         if(relations[i]->active_count > 0)
+    //         {
+    //             int count = 0;
+    //             printf("\"%s\" ", relations[i]->id_rel);
 
                 
-                for(topitem ti = tl[relations[i]->index]; ti != NULL; ti = ti->next)
-                {
-                    if(count == size)
-                    {
-                        size <<= 1;
-                        ar = realloc(ar, size * sizeof(char*));
-                    }
-                    ar[count++] = ti->item->id_ent;
-                }
-                qsort(ar,count,sizeof(char*),cmpstr);
-                for(int j = 0; j < count; j++)
-                {
-                    printf("\"%s\" ", ar[j]);
-                }
-                printf("%d;", tl[relations[i]->index]->val);
-                if(cnt-i > 1) printf(" ");
-            }
-        }
-        free(ar);
-        printf("\n");
-    }
-    else
-        printf("none\n");
+    //             for(topitem ti = tl[relations[i]->index]; ti != NULL; ti = ti->next)
+    //             {
+    //                 if(count == size)
+    //                 {
+    //                     size <<= 1;
+    //                     ar = realloc(ar, size * sizeof(char*));
+    //                 }
+    //                 ar[count++] = ti->item->id_ent;
+    //             }
+    //             qsort(ar,count,sizeof(char*),cmpstr);
+    //             for(int j = 0; j < count; j++)
+    //             {
+    //                 printf("\"%s\" ", ar[j]);
+    //             }
+    //             printf("%d;", tl[relations[i]->index]->val);
+    //             if(cnt-i > 1) printf(" ");
+    //         }
+    //     }
+    //     free(ar);
+    //     printf("\n");
+    // }
+    // else
+    //     printf("none\n");
     
-    free(checkmask);
-    for(int i=0; i<cnt; i++)
-        free_topitem_list(tl[i]);
-    free(tl);
-    free(relations);
+    // free(checkmask);
+    // for(int i=0; i<cnt; i++)
+    //     free_topitem_list(tl[i]);
+    // free(tl);
+    // free(relations);
 }
