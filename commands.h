@@ -31,12 +31,14 @@ void addrel(direct_ht ht, rel_db relations,
         //Initialize it if needed
         rar = new_relarray();
         ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
+        ht_insert(ent_dest->ht_links, id_orig, rar, h_orig);
     }
 
     //Get relation info
     relation rel = create_relation(relations, id_rel);
 
-    int created = relarray_add(rar, rel->index);
+    int direction = strcmp(id_orig, id_dest);
+    int created = relarray_add(rar, rel->index, direction);
 
     //Set active relation arraylist to proper value
     if(created)
@@ -48,7 +50,7 @@ void addrel(direct_ht ht, rel_db relations,
     //TODO: Update max lists 
 }
 
-void delent(direct_ht ht, rel_db relations, char* id_ent)
+void delent(direct_ht ht, rel_db relations, char* id_ent) ///TODO HERE FIX WITH NEW DOUBLE RELATIONS
 {
     //Go to the entry in the entity hashtable
     uint h_ent = hash(id_ent);
@@ -134,7 +136,8 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     //Update arraylist entry if needed
     relation relitem = create_relation(relations, id_rel); //TODO REPLACE THIS
 
-    if(relarray_remove(rar, relitem->index)) //If the relation existed remove it and update counts
+    int direction = strcmp(id_orig, id_dest);
+    if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts
     {
         relitem->active_count--;
         countarray_reduce(&(ent_dest->in_counts), relitem->index);
