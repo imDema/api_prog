@@ -157,74 +157,79 @@ int cmpstr(const void* a, const void* b)
     return strcmp(aa,bb);
 }
 
-void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
+int cmptopar(const void* a, const void* b)
 {
-    // rel_item* relations = malloc(rel_ht->count * sizeof(rel_item));
+    const toparray aa = *(toparray*)a;
+    const toparray bb = *(toparray*)b;
+    return strcmp(aa.id_rel, bb.id_rel);
+}
 
-    // int k = 0, cnt = rel_ht->count;
-    
-    // //checkmask, remove if toplist active
-    // int active = 0;
-    // int* checkmask = malloc(cnt * sizeof(int));
-    // topitem* tl = (topitem*)malloc(cnt * sizeof(topitem));
-    // //checkmask
-    // for(int i = 0; k < cnt; i++) //IF STUFF CRASHES IT'S BECAUSE cnt is wrong
-    // {
-    //     for (rel_item ri = (rel_item)rel_ht->buckets[i]; ri != NULL; ri = ri->next)
-    //     {
-    //         relations[k++] = ri;
-    //         if(ri->active_count > 0)
-    //             checkmask[active++] = ri->index;
-    //     }
-    // }
-    
-    // if(active > 0)
-    // {
-    //     for(int i = 0; i<cnt; i++)
-    //         tl[i] = new_topitem(NULL,0);
+void report(direct_ht ht, rel_db relations)
+{
+    int M = relations->count;
+    int none = 1;
+    for(int i = 0; i < M; i++)
+    {
+        if(relations->array[i].active_count > 0)
+        {
+            none = 0;
+            break;
+        }
+    }
+    if(none)
+    {
+        printf("none\n");
+        return;
+    }
 
-    //     //Build top arrays
-    //     gen_top(ent_ht, tl, checkmask, active);
-        
-    //     qsort(relations, cnt, sizeof(rel_item), comp_rel);
-    //     //Print
-    //     int size = 4;
-    //     char** ar = malloc(size * sizeof(char*));
-    //     for(int i = 0; i < cnt; i++)
-    //     {
-    //         if(relations[i]->active_count > 0)
-    //         {
-    //             int count = 0;
-    //             printf("\"%s\" ", relations[i]->id_rel);
+    toparray* maxlist = calloc(M, sizeof(toparray));
 
-                
-    //             for(topitem ti = tl[relations[i]->index]; ti != NULL; ti = ti->next)
-    //             {
-    //                 if(count == size)
-    //                 {
-    //                     size <<= 1;
-    //                     ar = realloc(ar, size * sizeof(char*));
-    //                 }
-    //                 ar[count++] = ti->item->id_ent;
-    //             }
-    //             qsort(ar,count,sizeof(char*),cmpstr);
-    //             for(int j = 0; j < count; j++)
-    //             {
-    //                 printf("\"%s\" ", ar[j]);
-    //             }
-    //             printf("%d;", tl[relations[i]->index]->val);
-    //             if(cnt-i > 1) printf(" ");
-    //         }
-    //     }
-    //     free(ar);
-    //     printf("\n");
-    // }
-    // else
-    //     printf("none\n");
+    //Go over all buckets
+    for(int i = 0; i < ht->size; i++)
+    {
+        bucket bkt = ht->buckets[i];
+        if(bkt.hash != 0x0)
+        {
+            //Go over the count for entering relations
+            countarray cnt = ((entity)bkt.value)->in_counts;
+            for(int index = 0, max = cnt.size < M ? cnt.size : M; index < max; index++)
+            {
+                int x = cnt.array[index];
+                if(x == maxlist[index].value) //Add to the list
+                {
+                    arralylist_push(&maxlist[index], bkt.key);
+                }
+                else if(x > maxlist[index].value) //Empty list and add item
+                {
+                    maxlist[index].value = x;
+                    maxlist[index].count = 0;
+                    arralylist_push(&maxlist[index], bkt.key);
+                }
+            }
+        }
+    }
+    for(int i = 0; i < M; i++)
+    {
+        qsort(maxlist[i].array, maxlist[i].count, sizeof(char*), cmpstr);
+        maxlist[i].id_rel = relations->array[i].id_rel;
+    }
     
-    // free(checkmask);
-    // for(int i=0; i<cnt; i++)
-    //     free_topitem_list(tl[i]);
-    // free(tl);
-    // free(relations);
+    qsort(maxlist, M, sizeof(toparray), cmptopar);
+    for(int i = 0; i < M; i++)
+    {
+        toparray topar = maxlist[i];
+        if(topar.value > 0)
+        {
+            if(i > 0)
+                printf(" ");
+            printf("\"%s\" ", topar.id_rel);
+            for(int j = 0; j < topar.count; j++)
+            {
+                printf("\"%s\" ", topar.array[j]);
+            }
+            printf("%d;", topar.value);
+        }
+    }
+    printf("\n");
+    free(maxlist);
 }

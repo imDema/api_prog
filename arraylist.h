@@ -2,6 +2,8 @@
 #define FROM_FIRST 0x1
 #define FROM_SECOND 0x2
 
+const int wsize = 8 * sizeof(uint);
+
 typedef unsigned char byte;
 struct _relarray
 {
@@ -11,7 +13,22 @@ struct _relarray
 };
 typedef struct _relarray* relarray;
 
-const int wsize = 8 * sizeof(uint);
+struct _countarray
+{
+    int* array;
+    int size;
+    int count;
+};
+typedef struct _countarray countarray;
+
+typedef struct _toparray
+{
+    char* id_rel;
+    int value;
+    char** array;
+    int count;
+    int size;
+} toparray;
 
 int relarray_add(relarray arl, int index, int direction)
 {
@@ -54,16 +71,7 @@ relarray new_relarray()
     return arl;
 }
 
-struct _countarray
-{
-    int* array;
-    int size;
-    int count;
-};
-typedef struct _countarray * countarray;
-
-
-int countarray_increase(countarray acl, int index)
+int countarray_increase(countarray* acl, int index)
 {
     if(acl->array == NULL)
     {
@@ -73,8 +81,8 @@ int countarray_increase(countarray acl, int index)
     }
     if(index >= acl->size)
     {
-        while(acl->size < index)
-            acl->size <<= 1;
+        while(index >= acl->size)
+            acl->size *= 2;
         acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
     }
     //If it's the first for this kind of relation increase count of active relations
@@ -82,7 +90,7 @@ int countarray_increase(countarray acl, int index)
     return ++acl->array[index];
 }
 
-int countarray_reduce(countarray acl, int index)
+int countarray_reduce(countarray* acl, int index)
 {
     if(index >= acl->size) return 0;
     if(acl->array[index]-1 == 0)
@@ -91,17 +99,25 @@ int countarray_reduce(countarray acl, int index)
     return --acl->array[index];
 }
 
-void countarray_free(countarray acl)
+void countarray_free(countarray* acl)
 {
     free(acl->array);
     free(acl);
 }
 
-countarray new_countarray()
+void arralylist_push(toparray* tarr, void* item)
 {
-    countarray acl = malloc(sizeof(struct _countarray));
-    acl->array = (int*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
-    acl->size = ARRAYLIST_DEFAULTSIZE;
-    acl->count = 0;
-    return acl;
+    if(tarr->size == 0)
+    {
+        tarr->array = calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
+        tarr->size = ARRAYLIST_DEFAULTSIZE;
+        tarr->count = 0;
+    }
+    if(tarr->size == tarr->count)
+    {
+        tarr->size *= 2;
+        tarr->array = realloc(tarr->array, tarr->size * sizeof(char*));
+    }
+    tarr->array[tarr->count] = item;
+    tarr->count++;
 }

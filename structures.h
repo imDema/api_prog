@@ -49,7 +49,7 @@ relation create_relation(rel_db relations, char* id_rel)
         relations->array = realloc(relations->array, 2 * relations->size * sizeof(struct _relation));
     
     //Set array element values
-    rel = &(relations->array[relations->count]);
+    rel = relations->array + relations->count;
     rel->id_rel = strndup(id_rel, MAXLEN);
     rel->index = relations->count;
     relations->count++; //Increase virtual size

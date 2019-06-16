@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
         }
         else if (!strcmp(opcode, "report")) //REPORT
         {
-            //report();
+            report(ht, relations);
         }
         else
             fprintf(stderr, "Unrecognized command!\n");

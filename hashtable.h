@@ -45,7 +45,7 @@ bucket* new_buckets(int size)
 
 int get_prime_size(int approx_size)
 {
-    int size;
+    int size = __INT_MAX__;
     for(int s = 0; s < primes_size; s++)
         if(primes[s] >= approx_size)
         {
