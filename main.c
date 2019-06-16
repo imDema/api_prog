@@ -1,3 +1,5 @@
+#define MAXLEN 128
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,12 +8,6 @@
 //#include "toplist.h"
 #include "structures.h"
 #include "commands.h"
-
-#define MAXLEN 128
-#define PRIME_DEBUG 17
-#define PRIME_SMALL 31
-#define PRIME_K 1021
-#define PRIME_M 1048573
 
 typedef unsigned int uint;
 

@@ -3,9 +3,8 @@ void addent(direct_ht ht, char* id_ent)
     //Calculate hash
     uint h = hash(id_ent);
 
-    //TODO This is wrong, you need to allocate a relation instead and init it
     entity ent = new_entity();
-    ht_insert(ht, strndup(id_ent, MAXLEN), ent, h);
+    ht_insert(ht, id_ent, ent, h);
 }
 
 void addrel(direct_ht ht, rel_db relations,
@@ -22,10 +21,11 @@ void addrel(direct_ht ht, rel_db relations,
     //Initialize link ht if needed
     if(ent_orig->ht_links == NULL)
         ent_orig->ht_links = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
+    if(ent_dest->ht_links == NULL)
+        ent_dest->ht_links = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
-    direct_ht ht_orig = ent_orig->ht_links;
     //Get the relation array for the link
-    relarray rar = ht_search(ht_orig, id_dest, h_dest);
+    relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
     if(rar == NULL)
     {
         //Initialize it if needed
@@ -47,10 +47,10 @@ void addrel(direct_ht ht, rel_db relations,
         countarray_increase(&(ent_dest->in_counts), rel->index);
     }
 
-    //TODO: Update max lists 
+    //TODO: Update top lists 
 }
 
-void delent(direct_ht ht, rel_db relations, char* id_ent) ///TODO HERE FIX WITH NEW DOUBLE RELATIONS
+void delent(direct_ht ht, rel_db relations, char* id_ent)
 {
     //Go to the entry in the entity hashtable
     uint h_ent = hash(id_ent);
@@ -71,34 +71,31 @@ void delent(direct_ht ht, rel_db relations, char* id_ent) ///TODO HERE FIX WITH 
             relarray rar = bkt.value;
             if(rar->count > 0) //Decrease count for every active relation on link
             {
-                int* active_indexes = relarray_get_active(rar);
-                for(int j = 0; j < rar->count; j++)
+                int order = strcmp(id_ent, bkt.key);
+                int lim = rar->size < relations->count ? rar->size : relations->count;
+                for(int index = 0; index < lim; index++)
                 {
-                    int index = active_indexes[j];
-                    //DEBUG
-                    if(dest->in_counts.array[index] < 1)
-                        fprintf(stderr, "Something has gone very wrong, trying to reduce %s relation from %s below 0", id_ent, bkt.key);
-                    //REMOVE
-                    dest->in_counts.array[index]--;
-                    relations->array[index].active_count--;
+                    //If there is a relation entering the entity we are deleting
+                    int n_active = 0;
+                    if(rar->array[index] & FROM_FIRST)
+                    {
+                        n_active++;
+                        if(order > 0)
+                            dest->in_counts.array[index]--;
+                    }
+                    if(rar->array[index] & FROM_SECOND)
+                    {
+                        n_active++;
+                        if(order <= 0)
+                            dest->in_counts.array[index]--;
+                    }
+
+                    relations->array[index].active_count -= n_active;
                 }
-                free(active_indexes);
             }
 
             free(rar);
-            //TODO If memory needed free all inverse links from dest
-        }
-    }
-    //Count orphaned relations and update relations active counts
-    countarray counts = &(ent->in_counts);
-    for(int j = 0, c = counts->count; j < counts->size && c > 0; j++)
-    {
-        int x = counts->array[j];
-        if(x > 0)
-        {
-            relations->array[j].active_count -= x;
-            relations->orphaned += x;
-            c--;
+            ht_delete(dest->ht_links, id_ent, h_ent);
         }
     }
 
@@ -108,12 +105,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent) ///TODO HERE FIX WITH 
     free(ent);
 
     ht_delete(ht, id_ent, h_ent);
-    
-
-    //TODO reduce relation active counts
-    //Iterate over links
-    //Free link entries
-    //Update top list
+    //TODO Update top list
 }
 
 void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* id_rel)
@@ -134,7 +126,7 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     if(rar == NULL) return;
 
     //Update arraylist entry if needed
-    relation relitem = create_relation(relations, id_rel); //TODO REPLACE THIS
+    relation relitem = create_relation(relations, id_rel);
 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts
@@ -148,7 +140,7 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
         relarray_free(rar);
     }
 
-    //TODO: Update max lists
+    //TODO: Update top lists
 }
 
 int comp_rel(const void* r1, const void* r2)
@@ -190,8 +182,6 @@ void report(hashtable rel_ht, hashtable link_ht, hashtable ent_ht)
     // {
     //     for(int i = 0; i<cnt; i++)
     //         tl[i] = new_topitem(NULL,0);
-
-    //     ///////TODO do not do this
 
     //     //Build top arrays
     //     gen_top(ent_ht, tl, checkmask, active);
