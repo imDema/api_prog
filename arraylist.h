@@ -22,7 +22,11 @@ int relarray_add(relarray arl, int index)
     int i = index / wsize;
     int j = index % wsize;
     int newcreated = !((arl->array[index] >> j) & 0x1);
-    arl->array[i] |= (0x1 << j);
+    if(newcreated)
+    {
+        arl->count++;
+        arl->array[i] |= (0x1 << j);
+    }
     return newcreated;
 }
 

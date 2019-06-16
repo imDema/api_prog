@@ -4,8 +4,8 @@ void addent(direct_ht ht, char* id_ent)
     uint h = hash(id_ent);
 
     //TODO This is wrong, you need to allocate a relation instead and init it
-    direct_ht links = calloc(1, sizeof(struct _direct_ht));
-    ht_insert(ht, strndup(id_ent, MAXLEN), links, h);
+    entity ent = new_entity();
+    ht_insert(ht, strndup(id_ent, MAXLEN), ent, h);
 }
 
 void addrel(direct_ht ht, rel_db relations,
@@ -57,6 +57,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     if(ent == NULL) return;
 
     //Update all outbound links relation counts and delete the links
+    if(ent->ht_links != NULL)
     for(int i = 0; i < ent->ht_links->size; i++)
     {
         bucket bkt = ent->ht_links->buckets[i];
@@ -85,26 +86,27 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
             free(rar);
             //TODO If memory needed free all inverse links from dest
         }
-        
-        //Count orphaned relations and update relations active counts
-        countarray counts = &(ent->in_counts);
-        for(int j = 0, c = counts->count; j < counts->size && c > 0; j++)
-        {
-            int x = counts->array[j];
-            if(x > 0)
-            {
-                relations->array[j].active_count -= x;
-                relations->orphaned += x;
-                c--;
-            }
-        }
-
-        //Free the entity
-        ht_free(ent->ht_links);
-        countarray_free(&(ent->in_counts));
-
-        ht_delete(ht, id_ent, h_ent);
     }
+    //Count orphaned relations and update relations active counts
+    countarray counts = &(ent->in_counts);
+    for(int j = 0, c = counts->count; j < counts->size && c > 0; j++)
+    {
+        int x = counts->array[j];
+        if(x > 0)
+        {
+            relations->array[j].active_count -= x;
+            relations->orphaned += x;
+            c--;
+        }
+    }
+
+    //Free the entity
+    ht_free(ent->ht_links);
+    free(ent->in_counts.array);
+    free(ent);
+
+    ht_delete(ht, id_ent, h_ent);
+    
 
     //TODO reduce relation active counts
     //Iterate over links

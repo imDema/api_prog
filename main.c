@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
             //report();
         }
         else
-            exit(666);
+            fprintf(stderr, "Unrecognized command!\n");
     }
     //FREE OPS
     ht_free(ht);
