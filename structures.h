@@ -46,7 +46,10 @@ relation create_relation(rel_db relations, char* id_rel)
 
     //Create new
     if(relations->count == relations->size) //Expand if needed
-        relations->array = realloc(relations->array, 2 * relations->size * sizeof(struct _relation));
+    {
+        relations->size *= 2;
+        relations->array = realloc(relations->array, relations->size * sizeof(struct _relation));
+    }
     
     //Set array element values
     rel = relations->array + relations->count;

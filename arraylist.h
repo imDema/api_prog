@@ -35,8 +35,8 @@ int relarray_add(relarray arl, int index, int direction)
     byte mask = direction <= 0 ? FROM_FIRST : FROM_SECOND;
     if(index >= arl->size)
     {
-        while(arl->size < index)
-            arl->size <<= 1;
+        while(index >= arl->size)
+            arl->size *= 2;
         arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
     }
     int newcreated = !(arl->array[index] & mask);
@@ -109,7 +109,7 @@ void arralylist_push(toparray* tarr, void* item)
 {
     if(tarr->size == 0)
     {
-        tarr->array = calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
+        tarr->array = calloc(ARRAYLIST_DEFAULTSIZE, sizeof(char*));
         tarr->size = ARRAYLIST_DEFAULTSIZE;
         tarr->count = 0;
     }
