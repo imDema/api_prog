@@ -21,14 +21,6 @@ struct _countarray
 };
 typedef struct _countarray countarray;
 
-typedef struct _toparray
-{
-    char* id_rel;
-    int value;
-    char** array;
-    int count;
-    int size;
-} toparray;
 
 int relarray_add(relarray arl, int index, int direction)
 {
