@@ -6,7 +6,7 @@ typedef unsigned int uint;
 #include <string.h>
 #include "arraylist.h"
 #include "hashtable.h"
-//#include "toplist.h"
+#include "toplist.h"
 #include "structures.h"
 #include "commands.h"
 

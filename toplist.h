@@ -1,61 +1,121 @@
-struct _topitem
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+typedef struct _toparray
 {
-    struct _topitem* next;
-    ent_item item;
+    char** array;
+    int count;
+    int size;
+} toparray;
+
+struct _node
+{
+    struct _node* next;
+    char* id;
     int val;
 };
-typedef struct _topitem* topitem;
+typedef struct _node* node;
 
-topitem new_topitem(ent_item ent, int val)
+typedef struct toplist
 {
-    topitem it = malloc(sizeof(struct _topitem));
-    it->next = NULL;
-    it->item = ent;
-    it->val = val;
-    return it;
+    int min_val;
+    node head;
+    int count;
+    int max_trigger;
+    int rebuild;
+} toplist;
+
+node new_node(char* key, int val)
+{
+    node new = malloc(sizeof(struct _node));
+    new->next = NULL;
+    new->id = key;
+    new->val = val;
+    return new;
 }
 
-void free_topitem_list(topitem ti)
+void tl_insert(toplist* tl, char* key, int val)
 {
-    if(ti == NULL)
-        return;
-    if(ti->next != NULL)
-        free_topitem_list(ti->next);
-    free(ti);
-}
-
-void gen_top(hashtable ent_ht, topitem* tl, int* checkmask, int n)
-{
-    //Iterate over all ht entities
-    for(int i = 0, left = ent_ht->count; left > 0; i++) //IF STUFF CRASHES IT'S BECAUSE ht->count is wrong
-        for(ent_item entity = ent_ht->buckets[i]; entity != NULL; entity = entity->next)
+    if(tl->rebuild) return;
+    if(tl->count == 0)
+    {
+        tl->min_val = val;
+        tl->head = new_node(key,val);
+        tl->count = 1;
+    }
+    else if(tl->count < tl->max_trigger)
+    {
+        if(val < tl->min_val)
         {
-            left--;
-            //for each active relation index
-            for(int j = 0; j<n; j++)
-            {
-                int index = checkmask[j];
-                
-                //if the current entity entering relation count is higher or equal to the top found
-                int x = entity->relcounts->array[index];
-                if(entity->relcounts->size > index && x > 0 && x >= tl[index]->val) //Possible error here
-                {
-                    //If equal enqueue
-                    if(x == tl[index]->val)
-                    {
-                        topitem newitem = new_topitem(entity, x);
-                        newitem->next = tl[index];
-                        tl[index] = newitem;
-                    }
-                    //If greater
-                    else
-                    {
-                        //Free the current list
-                        free_topitem_list(tl[index]);
-                        //Put new one on top of the list
-                        tl[index] = new_topitem(entity,x);
-                    }
-                }
-            }
+            tl->min_val = val;
+            node new = new_node(key,val);
+            new->next = tl->head;
+            tl->head = new;
         }
+        else
+        {
+            node curr = tl->head;
+            while(curr->next != NULL && curr->next->val <= val)
+            {
+                curr = curr->next;
+            }
+            node new = new_node(key,val);
+            new->next = curr->next;
+            curr->next = new;
+        }
+        tl->count++;
+    }
+    else
+    {
+        while(tl->head != NULL && tl->head->val == tl->min_val)
+        {
+            node temp = tl->head;
+            tl->head = tl->head->next;
+            free(temp);
+            tl->count--;
+        }
+        if(tl->head == NULL)
+            tl->rebuild = 1;
+        else
+        {
+            tl_insert(tl, key, val);
+        }
+    }
+}
+
+void tl_remove(toplist* tl, char* key, int val)
+{
+    if(val < tl->min_val || tl->rebuild) return;
+
+    if(!strcmp(key, tl->head->id))
+    {
+        node temp = tl->head;
+        tl->head = tl->head->next;
+        free(temp);
+        tl->count--;
+
+        if(tl->head == NULL)
+        {
+            tl->rebuild = 1;
+            return;
+        }
+
+        if(tl->head->val < tl->min_val)
+            tl->min_val = tl->head->val;
+        return;
+    }
+
+    node curr = tl->head;
+    while (curr->next != NULL && strcmp(key, curr->next->id))
+    {
+        curr = curr->next;
+    }
+    if(curr->next == NULL)
+        return;
+    else
+    {
+        node temp = curr->next;
+        curr->next = curr->next->next;
+        free(temp);
+    }
 }
