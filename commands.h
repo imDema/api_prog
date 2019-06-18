@@ -3,6 +3,11 @@ void addent(direct_ht ht, char* id_ent)
     //Calculate hash
     uint h = hash(id_ent);
 
+    //Check if duplicate
+    if(ht_search(ht,id_ent, h) != NULL)
+        return;
+
+    //Create new and insert in ht
     entity ent = new_entity();
     ht_insert(ht, id_ent, ent, h);
 }
@@ -38,10 +43,9 @@ void addrel(direct_ht ht, rel_db relations,
     relation rel = create_relation(relations, id_rel);
 
     int direction = strcmp(id_orig, id_dest);
-    int created = relarray_add(rar, rel->index, direction);
 
     //Set active relation arraylist to proper value
-    if(created)
+    if(relarray_add(rar, rel->index, direction))
     {
         rel->active_count++;
         countarray_increase(&(ent_dest->in_counts), rel->index);
@@ -229,6 +233,7 @@ void report(direct_ht ht, rel_db relations)
             }
             printf("%d;", topar.value);
         }
+        free(topar.array);
     }
     printf("\n");
     free(maxlist);

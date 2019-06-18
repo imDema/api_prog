@@ -35,11 +35,18 @@ int relarray_add(relarray arl, int index, int direction)
     byte mask = direction <= 0 ? FROM_FIRST : FROM_SECOND;
     if(index >= arl->size)
     {
+        int s0 = arl->size;
         while(index >= arl->size)
             arl->size *= 2;
         arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
+        memset(&(arl->array[s0]), 0x00, s0 * sizeof(byte));
     }
     int newcreated = !(arl->array[index] & mask);
+    if(newcreated)
+    {
+        arl->count++;
+    }
+
     arl->array[index] |= mask;
     return newcreated;
 }
@@ -58,6 +65,7 @@ int relarray_remove(relarray arl, int index, int direction)
 
 void relarray_free(relarray arl)
 {
+    if(arl == NULL) return;
     free(arl->array);
     free(arl);
 }
@@ -81,9 +89,11 @@ int countarray_increase(countarray* acl, int index)
     }
     if(index >= acl->size)
     {
+        int s0 = acl->size;
         while(index >= acl->size)
             acl->size *= 2;
         acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
+        memset(acl->array + s0, 0x00, s0 * sizeof(int));
     }
     //If it's the first for this kind of relation increase count of active relations
     if(acl->array[index] == 0) acl->count++;

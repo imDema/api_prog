@@ -1,4 +1,5 @@
 #define MAXLEN 128
+typedef unsigned int uint;
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,10 +10,6 @@
 #include "structures.h"
 #include "commands.h"
 
-typedef unsigned int uint;
-
-
-
 int main(int argc, char* argv[])
 {
     //INIT OPS
@@ -21,8 +18,11 @@ int main(int argc, char* argv[])
     rel_db relations = new_rel_db();
     direct_ht ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
+    FILE* inptr = stdin;
+    inptr = fopen("tests/test.in","r"); //FOR DEBUGGING
+
     //START READING INPUTS
-    while(strcmp(fgets(line, MAXLEN, stdin), "end\n"))
+    while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
         char* opcode = strtok(line, " \"\n");
 
@@ -57,7 +57,9 @@ int main(int argc, char* argv[])
         else
             fprintf(stderr, "Unrecognized command!\n");
     }
+
+    if(inptr != stdin) fclose(inptr); //FOR DEBUGGING
     //FREE OPS
-    ht_free(ht);
+    free_entities(ht);
     rel_db_free(relations);
 }
