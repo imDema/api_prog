@@ -182,7 +182,7 @@ void report(direct_ht ht, rel_db relations)
     }
     if(none)
     {
-        printf("none\n");
+        fputs("none\n", stdout);
         return;
     }
 
@@ -235,18 +235,21 @@ void report(direct_ht ht, rel_db relations)
         if(topar.value > 0)
         {
             if(!first)
-                printf(" ");
+                fputc(' ', stdout);
             first = 0;
-
-            printf("\"%s\" ", topar.id_rel);
+            fputc('\"', stdout);
+            fputs(topar.id_rel, stdout);
+            fputs("\" ", stdout);
             for(int j = 0; j < topar.count; j++)
             {
-                printf("\"%s\" ", topar.array[j]);
+                fputc('\"', stdout);
+                fputs(topar.array[j], stdout);
+                fputs("\" ", stdout);
             }
             printf("%d;", topar.value);
         }
         free(topar.array);
     }
-    printf("\n");
+    fputc('\n', stdout);
     free(maxlist);
 }
