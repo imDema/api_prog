@@ -21,10 +21,13 @@ int main(int argc, char* argv[])
     FILE* inptr = stdin;
     inptr = fopen("tests/test.in","r"); //FOR DEBUGGING
 
+    //int i = 0;
+
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
         char* opcode = strtok(line, " \"\n");
+        //printf("%d\n", ++i);
 
         if(!strcmp(opcode, "addent")) //ADDENT
         {
@@ -54,10 +57,10 @@ int main(int argc, char* argv[])
         {
             report(ht, relations);
         }
-        // else if(!strcmp(opcode, "debug")) //DEBUG
-        // {
-        //     printf(",\n");
-        // }
+        else if(!strcmp(opcode, "debug")) //DEBUG
+        {
+            printf(",\n");
+        }
         else
             fprintf(stderr, "Unrecognized command!\n");
     }

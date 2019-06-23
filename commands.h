@@ -128,8 +128,10 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     if(rar == NULL) return;
 
     //Update arraylist entry if needed
-    relation relitem = ht_search(relations->ht, id_rel, hash(id_rel));
-    if(relitem == NULL) return;
+    int* ind = ht_search(relations->ht, id_rel, hash(id_rel));
+    if(ind == NULL) return;
+    
+    relation relitem = &(relations->array[*ind]);
 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts

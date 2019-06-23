@@ -39,9 +39,9 @@ relation create_relation(rel_db relations, char* id_rel)
     //Check relation list in rel_ht
     uint h = hash(id_rel);
 
-    relation rel = ht_search(relations->ht, id_rel, h);
+    int* ind = ht_search(relations->ht, id_rel, h);
     
-    if(rel != NULL) return rel;
+    if(ind != NULL) return &(relations->array[*ind]);
 
     //Create new
     if(relations->count == relations->size) //Expand if needed
@@ -51,14 +51,16 @@ relation create_relation(rel_db relations, char* id_rel)
     }
     
     //Set array element values
-    rel = relations->array + relations->count;
+    relation rel = &(relations->array[relations->count]);
     rel->id_rel = strndup(id_rel, MAXLEN);
     rel->active_count = 0;
     rel->index = relations->count;
-    relations->count++; //Increase virtual size
 
+    int* bucketval = malloc(sizeof(int));
+    *bucketval = relations->count;
     //Add array element to hashtable for lookups
-    ht_insert(relations->ht, rel->id_rel, rel, h);
+    ht_insert(relations->ht, rel->id_rel, bucketval, h);
+    relations->count++; //Increase virtual size
 
     return rel;
 }
@@ -81,7 +83,18 @@ void rel_db_free(rel_db relations)
         //free toplist
     }
     free(relations->array);
-    ht_free(relations->ht);
+    direct_ht ht = relations->ht;
+    if(ht->count > 0)
+        for(int i = 0; i < ht->size; i++)
+        {
+            if(ht->buckets[i].key != NULL)
+            {
+                free(ht->buckets[i].key);
+                free(ht->buckets[i].value);
+            }
+        }
+    free(ht->buckets);
+    free(ht);
     free(relations);
 }
 
