@@ -188,6 +188,7 @@ void report(direct_ht ht, rel_db relations)
 
     toparray* maxlist = calloc(M, sizeof(toparray));
 
+    //PASS 1: Find max values
     //Go over all buckets
     for(int i = 0; i < ht->size; i++)
     {
@@ -198,17 +199,25 @@ void report(direct_ht ht, rel_db relations)
             countarray cnt = ((entity)bkt.value)->in_counts;
             for(int index = 0, max = cnt.size < M ? cnt.size : M; index < max; index++)
             {
+                if(cnt.array[index] > maxlist[index].value)
+                    maxlist[index].value = cnt.array[index];
+            }
+        }
+    }
+    //PASS 2: Build lists
+    for(int i = 0; i < ht->size; i++)
+    {
+        bucket bkt = ht->buckets[i];
+        if(bkt.hash != 0x0)
+        {
+            //Go over the count for entering relations
+            countarray cnt = ((entity)bkt.value)->in_counts;
+            for(int index = 0, max = cnt.size < M ? cnt.size : M; index < max; index++)
+            {
                 int x = cnt.array[index];
-                if(x == maxlist[index].value) //Add to the list
-                {
+                if(maxlist[index].value > 0 && x == maxlist[index].value) //Add to the list
                     arralylist_push(&maxlist[index], bkt.key);
-                }
-                else if(x > maxlist[index].value) //Empty list and add item
-                {
-                    maxlist[index].value = x;
-                    maxlist[index].count = 0;
-                    arralylist_push(&maxlist[index], bkt.key);
-                }
+
             }
         }
     }
