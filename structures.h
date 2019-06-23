@@ -115,8 +115,11 @@ void free_entities(direct_ht ht)
 
         free_prev_relrrays(ht, bkt);
         entity ent = bkt.value;
-        free(ent->ht_links->buckets);
-        free(ent->ht_links);
+        if(ent->ht_links != NULL)
+        {
+            free(ent->ht_links->buckets);
+            free(ent->ht_links);
+        }
         free(ent->in_counts.array);
 
         free(bkt.key);
