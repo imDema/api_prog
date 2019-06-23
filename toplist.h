@@ -40,7 +40,7 @@ void tl_insert(toplist* tl, char* key, int val)
     if(tl->count == 0)
     {
         tl->min_val = val;
-        tl->head = new_node(key,val);
+        tl->head = new_node(strndup(key,MAXLEN), val);
         tl->count = 1;
     }
     else if(tl->count < tl->max_trigger)

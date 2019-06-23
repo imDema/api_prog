@@ -48,7 +48,8 @@ void addrel(direct_ht ht, rel_db relations,
     if(relarray_add(rar, rel->index, direction))
     {
         rel->active_count++;
-        countarray_increase(&(ent_dest->in_counts), rel->index);
+        int newval = countarray_increase(&(ent_dest->in_counts), rel->index);
+        tl_insert(&(rel->tl), id_dest, newval);
     }
 
     //TODO: Update top lists 
@@ -145,13 +146,6 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     }
 
     //TODO: Update top lists
-}
-
-int comp_rel(const void* r1, const void* r2)
-{
-    char* id1 = (*(rel_item*)r1)->id_rel;
-    char* id2 = (*(rel_item*)r2)->id_rel;
-    return strcmp(id1,id2);
 }
 
 int cmpstr(const void* a, const void* b)

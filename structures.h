@@ -1,8 +1,3 @@
-#define MAXLEN 128
-#define DEFAULT_REL_DB_ARR_SIZE 4
-
-/////////NEW
-
 struct _entity
 {
     direct_ht ht_links;
@@ -20,7 +15,7 @@ struct _relation
     char* id_rel;
     int index;
     int active_count;
-    //toplist tl;
+    toplist tl;
 };
 typedef struct _relation* relation;
 
@@ -55,6 +50,11 @@ relation create_relation(rel_db relations, char* id_rel)
     rel->id_rel = strndup(id_rel, MAXLEN);
     rel->active_count = 0;
     rel->index = relations->count;
+    rel->tl.min_val = 0;
+    rel->tl.head = NULL;
+    rel->tl.count = 0;
+    rel->tl.max_trigger = TOPLIST_MAX_TRIGGER;
+    rel->tl.rebuild = 0;
     relations->count++; //Increase virtual size
 
     //Add array element to hashtable for lookups
@@ -127,33 +127,4 @@ void free_entities(direct_ht ht)
     }
     free(ht->buckets);
     free(ht);
-}
-
-/////////NEW
-
-struct _toplist
-{
-    struct _toplist* next;
-    int value;
-    int size;
-    int count;
-    entity item;
-};
-typedef struct _toplist* toplist;
-
-struct _rel_item
-{
-    struct _rel_item* next;
-    char* id_rel;
-    int index;
-    int active_count;
-    toplist top;
-};
-typedef struct _rel_item* rel_item;
-
-//TODO
-void tl_free(toplist tl)
-{
-    //if(tl->next != NULL) tl_free(tl->next);
-    free(tl);
 }

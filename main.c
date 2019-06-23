@@ -1,4 +1,6 @@
 #define MAXLEN 128
+#define DEFAULT_REL_DB_ARR_SIZE 4
+#define TOPLIST_MAX_TRIGGER 24
 typedef unsigned int uint;
 
 #include <stdlib.h>
