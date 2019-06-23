@@ -35,8 +35,8 @@ void addrel(direct_ht ht, rel_db relations,
     {
         //Initialize it if needed
         rar = new_relarray();
-        ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
         ht_insert(ent_dest->ht_links, id_orig, rar, h_orig);
+        ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
     }
 
     //Get relation info
@@ -64,47 +64,44 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
 
     //Update all outbound links relation counts and delete the links
     if(ent->ht_links != NULL)
-    for(int i = 0; i < ent->ht_links->size; i++)
     {
-        bucket bkt = ent->ht_links->buckets[i];
-        if(bkt.hash != 0) //If a valid link has been found
+        for(int i = 0; i < ent->ht_links->size; i++)
         {
-            entity dest = ht_search(ht, bkt.key, bkt.hash);
-
-            //Remove all outbound relations
-            relarray rar = bkt.value;
-            if(rar->count > 0) //Decrease count for every active relation on link
+            bucket bkt = ent->ht_links->buckets[i];
+            if(bkt.hash != 0) //If a valid link has been found
             {
-                int order = strcmp(id_ent, bkt.key);
-                int lim = rar->size < relations->count ? rar->size : relations->count;
-                for(int index = 0; index < lim; index++)
+                entity dest = ht_search(ht, bkt.key, bkt.hash);
+
+                //Remove all outbound relations
+                relarray rar = bkt.value;
+                if(rar->count > 0) //Decrease count for every active relation on link
                 {
-                    //If there is a relation entering the entity we are deleting
-                    int n_active = 0;
-                    if(rar->array[index] & FROM_FIRST)
-                    {
-                        n_active++;
-                        if(order > 0)
-                            dest->in_counts.array[index]--;
-                    }
-                    if(rar->array[index] & FROM_SECOND)
-                    {
-                        n_active++;
-                        if(order <= 0)
-                            dest->in_counts.array[index]--;
-                    }
+                    int order = strcmp(id_ent, bkt.key);
+                    byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
 
-                    relations->array[index].active_count -= n_active;
+                    int lim = rar->size < relations->count ? rar->size : relations->count;
+                    for(int index = 0; index < lim; index++)
+                    {
+                        //If there is a relation entering the entity we are deleting
+                        if(rar->array[index] > 0)
+                        {
+                            if(rar->array[index] & mask)
+                            {
+                                dest->in_counts.array[index]--;
+                            }
+
+                            relations->array[index].active_count -= rar->array[index] > 2 ? 2 : 1;
+                        }
+                    }
                 }
+
+                relarray_free(rar);
+                ht_delete(dest->ht_links, id_ent, h_ent);
             }
-
-            free(rar);
-            ht_delete(dest->ht_links, id_ent, h_ent);
         }
+        ht_free(ent->ht_links);
     }
-
     //Free the entity
-    ht_free(ent->ht_links);
     free(ent->in_counts.array);
     free(ent);
 
@@ -124,13 +121,15 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     
 
     //Search link
+    if(ent_orig->ht_links == NULL) return;
     relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
     
     //Skip if it does not exist
     if(rar == NULL) return;
 
     //Update arraylist entry if needed
-    relation relitem = create_relation(relations, id_rel);
+    relation relitem = ht_search(relations->ht, id_rel, hash(id_rel));
+    if(relitem == NULL) return;
 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts
@@ -141,6 +140,7 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     if(rar->count == 0) //Free the link
     {
         ht_delete(ent_orig->ht_links, id_dest, h_dest);
+        ht_delete(ent_dest->ht_links, id_orig, h_orig);
         relarray_free(rar);
     }
 
@@ -218,14 +218,17 @@ void report(direct_ht ht, rel_db relations)
         maxlist[i].id_rel = relations->array[i].id_rel;
     }
     
+    int first = 1;
     qsort(maxlist, M, sizeof(toparray), cmptopar);
     for(int i = 0; i < M; i++)
     {
         toparray topar = maxlist[i];
         if(topar.value > 0)
         {
-            if(i > 0)
+            if(!first)
                 printf(" ");
+            first = 0;
+
             printf("\"%s\" ", topar.id_rel);
             for(int j = 0; j < topar.count; j++)
             {

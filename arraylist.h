@@ -31,7 +31,8 @@ int relarray_add(relarray arl, int index, int direction)
         while(index >= arl->size)
             arl->size *= 2;
         arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
-        memset(&(arl->array[s0]), 0x00, s0 * sizeof(byte));
+        for(int i = s0; i < arl->size; i++)
+            arl->array[i] = 0;
     }
     int newcreated = !(arl->array[index] & mask);
     if(newcreated)
@@ -85,7 +86,8 @@ int countarray_increase(countarray* acl, int index)
         while(index >= acl->size)
             acl->size *= 2;
         acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
-        memset(acl->array + s0, 0x00, s0 * sizeof(int));
+        for(int i = s0; i < acl->size; i++)
+            acl->array[i] = 0;
     }
     //If it's the first for this kind of relation increase count of active relations
     if(acl->array[index] == 0) acl->count++;
