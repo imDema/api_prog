@@ -54,6 +54,37 @@ void addrel(direct_ht ht, rel_db relations,
     //TODO: Update top lists 
 }
 
+void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bkt)
+{
+    entity dest = ht_search(ht, bkt.key, bkt.hash);
+
+    //Remove all outbound relations
+    relarray rar = bkt.value;
+    if(rar->count > 0) //Decrease count for every active relation on link
+    {
+        int order = strcmp(id_ent, bkt.key);
+        byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
+
+        int lim = rar->size < relations->count ? rar->size : relations->count;
+        for(int index = 0; index < lim; index++)
+        {
+            //If there is a relation entering the entity we are deleting
+            byte b = rar->array[index];
+            if(b > 0)
+            {
+                if(b & mask)
+                {
+                    dest->in_counts.array[index]--;
+                }
+                relations->array[index].active_count -= b == 0x11 ? 2 : 1;
+            }
+        }
+    }
+
+    relarray_free(rar);
+    ht_delete(dest->ht_links, id_ent, h_ent);
+}
+
 void delent(direct_ht ht, rel_db relations, char* id_ent)
 {
     //Go to the entry in the entity hashtable
@@ -64,41 +95,14 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
 
     //Update all outbound links relation counts and delete the links
     direct_ht ent_ht = ent->ht_links;
-    if(ent_ht != NULL)
+    if(ent_ht != NULL && ent_ht->count > 0)
     {
         for(int i = 0, m = ent_ht->size; i < m; i++)
         {
             bucket bkt = ent_ht->buckets[i];
             if(bkt.hash != 0) //If a valid link has been found
             {
-                entity dest = ht_search(ht, bkt.key, bkt.hash);
-
-                //Remove all outbound relations
-                relarray rar = bkt.value;
-                if(rar->count > 0) //Decrease count for every active relation on link
-                {
-                    int order = strcmp(id_ent, bkt.key);
-                    byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
-
-                    int lim = rar->size < relations->count ? rar->size : relations->count;
-                    for(int index = 0; index < lim; index++)
-                    {
-                        //If there is a relation entering the entity we are deleting
-                        byte b = rar->array[index];
-                        if(b > 0)
-                        {
-                            if(b & mask)
-                            {
-                                dest->in_counts.array[index]--;
-                            }
-
-                            relations->array[index].active_count -= b > 2 ? 2 : 1;
-                        }
-                    }
-                }
-
-                relarray_free(rar);
-                ht_delete(dest->ht_links, id_ent, h_ent);
+                dellink(ht, relations, id_ent, h_ent, bkt);
             }
         }
         ht_free(ent->ht_links);

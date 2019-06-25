@@ -158,6 +158,7 @@ void ht_delete(direct_ht ht, char* key, uint hash)
             ht->buckets[index].value = ht->buckets; //Marked as deleted to keep potential colliding walks intact
             free(ht->buckets[index].key);
             ht->buckets[index].key = NULL;
+            ht->count--;
             break;
         }
         else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket, item didn't exist

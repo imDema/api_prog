@@ -426,9 +426,9 @@ delrel "Chell" "Boothby" "parent"
 addent "RA_Bryce"
 addrel "Jonathan_Archer" "Airiam" "grandfather"
 addrel "Elizabeth_Cutler" "Airiam" "grandfather"
-debug
 delrel "Michael_Burnham" "Ayala" "parent"
 report
+debug
 addrel "Leonardo_da_Vinci" "Ayala" "grandfather"
 addrel "Damar" "Airiam" "grandmother"
 addrel "Azan" "Airiam" "grandfather"
