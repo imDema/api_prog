@@ -63,11 +63,12 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     if(ent == NULL) return;
 
     //Update all outbound links relation counts and delete the links
-    if(ent->ht_links != NULL)
+    direct_ht ent_ht = ent->ht_links;
+    if(ent_ht != NULL)
     {
-        for(int i = 0; i < ent->ht_links->size; i++)
+        for(int i = 0, m = ent_ht->size; i < m; i++)
         {
-            bucket bkt = ent->ht_links->buckets[i];
+            bucket bkt = ent_ht->buckets[i];
             if(bkt.hash != 0) //If a valid link has been found
             {
                 entity dest = ht_search(ht, bkt.key, bkt.hash);
@@ -83,14 +84,15 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
                     for(int index = 0; index < lim; index++)
                     {
                         //If there is a relation entering the entity we are deleting
-                        if(rar->array[index] > 0)
+                        byte b = rar->array[index];
+                        if(b > 0)
                         {
-                            if(rar->array[index] & mask)
+                            if(b & mask)
                             {
                                 dest->in_counts.array[index]--;
                             }
 
-                            relations->array[index].active_count -= rar->array[index] > 2 ? 2 : 1;
+                            relations->array[index].active_count -= b > 2 ? 2 : 1;
                         }
                     }
                 }
@@ -192,9 +194,11 @@ void report(direct_ht ht, rel_db relations)
 
     //PASS 1: Find max values
     //Go over all buckets
-    for(int i = 0; i < ht->size; i++)
+    const int size = ht->size;
+    bucket* buckets = ht->buckets;
+    for(int i = 0; i < size; i++)
     {
-        bucket bkt = ht->buckets[i];
+        bucket bkt = buckets[i];
         if(bkt.hash != 0x0)
         {
             //Go over the count for entering relations
@@ -207,9 +211,9 @@ void report(direct_ht ht, rel_db relations)
         }
     }
     //PASS 2: Build lists
-    for(int i = 0; i < ht->size; i++)
+    for(int i = 0; i < size; i++)
     {
-        bucket bkt = ht->buckets[i];
+        bucket bkt = buckets[i];
         if(bkt.hash != 0x0)
         {
             //Go over the count for entering relations
