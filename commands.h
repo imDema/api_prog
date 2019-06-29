@@ -40,7 +40,7 @@ void addrel(direct_ht ht, rel_db relations,
     }
 
     //Get relation info
-    relation rel = create_relation(relations, id_rel);
+    relation* rel = create_relation(relations, id_rel);
 
     int direction = strcmp(id_orig, id_dest);
 
@@ -76,7 +76,7 @@ void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bk
                 {
                     dest->in_counts.array[index]--;
                 }
-                relations->array[index].active_count -= b == 0x11 ? 2 : 1;
+                relations->array[index]->active_count -= b == 0x11 ? 2 : 1;
             }
         }
     }
@@ -131,13 +131,11 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
     
     //Skip if it does not exist
-    if(rar == NULL) return;
+    if(!rar) return;
 
     //Update arraylist entry if needed
-    int* ind = ht_search(relations->ht, id_rel, hash(id_rel));
-    if(ind == NULL) return;
-    
-    relation relitem = &(relations->array[*ind]);
+    relation* relitem = ht_search(relations->ht, id_rel, hash(id_rel));
+    if(!relitem) return;
 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts
@@ -153,13 +151,6 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     }
 
     //TODO: Update top lists
-}
-
-int comp_rel(const void* r1, const void* r2)
-{
-    char* id1 = (*(rel_item*)r1)->id_rel;
-    char* id2 = (*(rel_item*)r2)->id_rel;
-    return strcmp(id1,id2);
 }
 
 int cmpstr(const void* a, const void* b)
@@ -182,7 +173,7 @@ void report(direct_ht ht, rel_db relations)
     int none = 1;
     for(int i = 0; i < M; i++)
     {
-        if(relations->array[i].active_count > 0)
+        if(relations->array[i]->active_count > 0)
         {
             none = 0;
             break;
@@ -234,7 +225,7 @@ void report(direct_ht ht, rel_db relations)
     for(int i = 0; i < M; i++)
     {
         qsort(maxlist[i].array, maxlist[i].count, sizeof(char*), cmpstr);
-        maxlist[i].id_rel = relations->array[i].id_rel;
+        maxlist[i].id_rel = relations->array[i]->id_rel;
     }
     
     int first = 1;

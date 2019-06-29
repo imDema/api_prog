@@ -17,50 +17,69 @@ entity new_entity()
 
 struct _relation
 {
+    struct _relation* next;
     char* id_rel;
     int index;
     int active_count;
     //toplist tl;
 };
-typedef struct _relation* relation;
+typedef struct _relation relation;
 
 
 struct _rel_db
 {
-    struct _relation* array;
+    relation* list;
+    relation** array;
     direct_ht ht;
     int size;
     int count;
 };
 typedef struct _rel_db* rel_db;
 
-relation create_relation(rel_db relations, char* id_rel)
+relation* create_relation(rel_db relations, char* id_rel)
 {
     //Check relation list in rel_ht
     uint h = hash(id_rel);
 
-    int* ind = ht_search(relations->ht, id_rel, h);
+    relation* rel = ht_search(relations->ht, id_rel, h);
     
-    if(ind != NULL) return &(relations->array[*ind]);
+    if(rel != NULL) return rel;
 
-    //Create new
-    if(relations->count == relations->size) //Expand if needed
-    {
-        relations->size *= 2;
-        relations->array = realloc(relations->array, relations->size * sizeof(struct _relation));
-    }
-    
-    //Set array element values
-    relation rel = &(relations->array[relations->count]);
+    //Create new node
+    rel = malloc(sizeof(relation));
     rel->id_rel = strndup(id_rel, MAXLEN);
     rel->active_count = 0;
     rel->index = relations->count;
+    //TODO INIT TOPLIST
 
-    int* bucketval = malloc(sizeof(int));
-    *bucketval = relations->count;
-    //Add array element to hashtable for lookups
-    ht_insert(relations->ht, rel->id_rel, bucketval, h);
+    //Insert in linked list sorting by id_rel
+    if(relations->list == NULL || strcmp(id_rel, relations->list->id_rel) < 0)
+    {
+        rel->next = relations->list;
+        relations->list = rel;
+    }
+    else
+    {
+        relation* curr = relations->list;
+        while(curr->next != NULL && strcmp(id_rel, curr->next->id_rel) > 0)
+            curr = curr->next;
+
+        rel->next = curr->next;
+        curr->next = rel;
+    }
+    
+
+    //Add pointer to direct access array
+    if(relations->count == relations->size) //Expand if needed
+    {
+        relations->size *= 2;
+        relations->array = realloc(relations->array, relations->size * sizeof(relation*));
+    }
+    relations->array[relations->count] = rel;
     relations->count++; //Increase virtual size
+
+    //Add pointer to hashtable for string lookups
+    ht_insert(relations->ht, rel->id_rel, rel, h);
 
     return rel;
 }
@@ -68,10 +87,11 @@ relation create_relation(rel_db relations, char* id_rel)
 rel_db new_rel_db()
 {
     rel_db relations = malloc(sizeof(struct _rel_db));
-    relations->array = malloc(DEFAULT_REL_DB_ARR_SIZE * sizeof(struct _relation));
+    relations->list = NULL;
+    relations->array = malloc(DEFAULT_REL_DB_ARR_SIZE * sizeof(relation*));
+    relations->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
     relations->count = 0;
     relations->size  = DEFAULT_REL_DB_ARR_SIZE;
-    relations->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
     return relations;
 }
 
@@ -79,22 +99,11 @@ void rel_db_free(rel_db relations)
 {
     for(int i = 0; i < relations->count; i++)
     {
-        free(relations->array[i].id_rel);
-        //free toplist
+        free(relations->array[i]->id_rel);
+        free(relations->array[i]);
     }
     free(relations->array);
-    direct_ht ht = relations->ht;
-    if(ht->count > 0)
-        for(int i = 0; i < ht->size; i++)
-        {
-            if(ht->buckets[i].key != NULL)
-            {
-                free(ht->buckets[i].key);
-                free(ht->buckets[i].value);
-            }
-        }
-    free(ht->buckets);
-    free(ht);
+    ht_free(relations->ht);
     free(relations);
 }
 
@@ -140,33 +149,4 @@ void free_entities(direct_ht ht)
     }
     free(ht->buckets);
     free(ht);
-}
-
-/////////NEW
-
-struct _toplist
-{
-    struct _toplist* next;
-    int value;
-    int size;
-    int count;
-    entity item;
-};
-typedef struct _toplist* toplist;
-
-struct _rel_item
-{
-    struct _rel_item* next;
-    char* id_rel;
-    int index;
-    int active_count;
-    toplist top;
-};
-typedef struct _rel_item* rel_item;
-
-//TODO
-void tl_free(toplist tl)
-{
-    //if(tl->next != NULL) tl_free(tl->next);
-    free(tl);
 }
