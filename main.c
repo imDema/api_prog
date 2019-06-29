@@ -26,8 +26,11 @@ int main(int argc, char* argv[])
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
+        //fputs(line, stdout); //DEBUGGING ONLY
+        //if(strstr(line, "Problematic_entry"))
+            //line[0] = line[0];
+
         char* opcode = strtok(line, " \"\n");
-        //printf("%d\n", ++i);
 
         if(!strcmp(opcode, "addent")) //ADDENT
         {
@@ -59,7 +62,7 @@ int main(int argc, char* argv[])
         }
         else if(!strcmp(opcode, "debug")) //DEBUG
         {
-            printf(",\n");
+            line[0] = line[0];
         }
         else
             fprintf(stderr, "Unrecognized command!\n");

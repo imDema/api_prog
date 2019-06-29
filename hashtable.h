@@ -34,6 +34,7 @@ struct _direct_ht //20 bytes each
     int count;
     int size;
     int loadsize;
+    int occupied;
     struct bucket* buckets;     //80 for default size
 };
 typedef struct _direct_ht* direct_ht;
@@ -63,6 +64,7 @@ struct _direct_ht create_direct_ht(int min_size)
     new_ht.count = 0;
     new_ht.size = newsize;
     new_ht.loadsize = newsize * LOADFAC;
+    new_ht.occupied = 0;
     new_ht.buckets = new_buckets(newsize);
     return new_ht;
 }
@@ -91,6 +93,7 @@ void ht_put(direct_ht ht, char* key, void* value, uint hash)
     ht->buckets[index].key = key;
     ht->buckets[index].value = value;
     ht->count++;
+    ht->occupied++;
 }
 
 void expand_hashtable(direct_ht ht)
@@ -105,6 +108,7 @@ void expand_hashtable(direct_ht ht)
             ht_put(&new_ht, bkt.key, bkt.value, bkt.hash);
         }
     }
+    ht->occupied = ht->count;
 
     free(ht->buckets);
     *ht = new_ht;
@@ -135,7 +139,7 @@ void ht_insert(direct_ht ht, char* key, void* value, uint hash)
 {
     if(ht_search(ht, key, hash) != NULL) return;
 
-    if(ht->count >= ht->loadsize)
+    if(ht->occupied >= ht->loadsize)
         expand_hashtable(ht);
     
     ht_put(ht, strndup(key, MAXLEN), value, hash);
@@ -178,37 +182,4 @@ void ht_free(direct_ht ht)
         }
     free(ht->buckets);
     free(ht);
-}
-
-char* uidof(char* a, char* b)
-{
-    char *first, *second;
-    first = strcmp(a,b) < 0 ? a : b;
-    second = first == a ? b : a;
-
-    int l1 = strlen(first), l2 = strlen(second);
-    char* uid = (char*)malloc(l1+l2+2);
-    strcpy(uid, first);
-    uid[l1] = '+';
-    strcpy(uid + l1 + 1, second);
-    uid[l1+l2+1] = '\0';
-
-    return uid;
-}
-
-struct _hashtable
-{
-    void** buckets;
-    int count;
-    int size;
-};
-typedef struct _hashtable* hashtable;
-
-hashtable new_hashtable(int size)
-{
-    hashtable ht = malloc(sizeof(struct _hashtable));
-    ht->size=size;
-    ht->buckets = (void**) calloc(size, sizeof(void*));
-    ht->count = 0;
-    return ht;
 }

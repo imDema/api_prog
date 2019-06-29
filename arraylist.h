@@ -59,7 +59,7 @@ int relarray_remove(relarray arl, int index, int direction)
 
     int deleted = arl->array[index] & mask;
     arl->array[index] &= ~mask;
-    if(arl->array[index] == 0)
+    if(deleted && arl->array[index] == 0)
         arl->count--;
     return deleted;
 }

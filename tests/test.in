@@ -428,12 +428,12 @@ addrel "Jonathan_Archer" "Airiam" "grandfather"
 addrel "Elizabeth_Cutler" "Airiam" "grandfather"
 delrel "Michael_Burnham" "Ayala" "parent"
 report
-debug
 addrel "Leonardo_da_Vinci" "Ayala" "grandfather"
 addrel "Damar" "Airiam" "grandmother"
 addrel "Azan" "Airiam" "grandfather"
 delrel "Chell" "Airiam" "grandmother"
 addrel "Chakotay" "Boothby" "grandfather"
+debug
 delent "Christine_Chapel"
 report
 addent "Jonathan_Archer"
