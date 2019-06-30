@@ -168,6 +168,7 @@ void rel_db_free(rel_db relations)
 {
     for(int i = 0; i < relations->count; i++)
     {
+        free(relations->array[i]->top.array);
         free(relations->array[i]->id_rel);
         free(relations->array[i]);
     }

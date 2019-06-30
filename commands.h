@@ -99,8 +99,9 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
 
     //Update all outbound links relation counts and delete the links
     direct_ht ent_ht = ent->ht_links;
-    if(ent_ht != NULL && ent_ht->count > 0)
+    if(ent_ht != NULL)
     {
+        if(ent_ht->count > 0)
         for(int i = 0, m = ent_ht->size; i < m; i++)
         {
             bucket bkt = ent_ht->buckets[i];
@@ -193,7 +194,11 @@ void rebuild_needed_toplists(direct_ht ht, rel_db relations)
         }
     }
 
-    if(M == 0) return;
+    if(M == 0)
+    {
+        free(to_be_rebuilt);
+        return;
+    }
 
     for(int i = 0; i < size; i++)
     {
@@ -211,6 +216,7 @@ void rebuild_needed_toplists(direct_ht ht, rel_db relations)
             }
         }
     }
+    free(to_be_rebuilt);
 }
 
 void order_toplists(rel_db relations)
