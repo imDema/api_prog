@@ -21,15 +21,6 @@ struct _countarray
 };
 typedef struct _countarray countarray;
 
-typedef struct _toparray
-{
-    char* id_rel;
-    int value;
-    char** array;
-    int count;
-    int size;
-} toparray;
-
 int relarray_add(relarray arl, int index, int direction)
 {
     byte mask = direction <= 0 ? FROM_FIRST : FROM_SECOND;
@@ -115,21 +106,4 @@ void countarray_free(countarray* acl)
 {
     free(acl->array);
     free(acl);
-}
-
-void arralylist_push(toparray* tarr, void* item)
-{
-    if(tarr->size == 0)
-    {
-        tarr->array = calloc(ARRAYLIST_DEFAULTSIZE, sizeof(char*));
-        tarr->size = ARRAYLIST_DEFAULTSIZE;
-        tarr->count = 0;
-    }
-    if(tarr->size == tarr->count)
-    {
-        tarr->size *= 2;
-        tarr->array = realloc(tarr->array, tarr->size * sizeof(char*));
-    }
-    tarr->array[tarr->count] = item;
-    tarr->count++;
 }

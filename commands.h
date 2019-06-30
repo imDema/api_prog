@@ -48,10 +48,14 @@ void addrel(direct_ht ht, rel_db relations,
     if(relarray_add(rar, rel->index, direction))
     {
         rel->active_count++;
-        countarray_increase(&(ent_dest->in_counts), rel->index);
-    }
+        int newval = countarray_increase(&(ent_dest->in_counts), rel->index);
 
-    //TODO: Update top lists 
+        if(relations->top_valid && newval >= rel->top.value)
+        {
+            char* key = ht_search_keyptr(ht, id_dest, h_dest);
+            toparray_update(rel, newval, key);
+        }
+    }
 }
 
 void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bkt)
@@ -112,7 +116,9 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     free(ent);
 
     ht_delete(ht, id_ent, h_ent);
-    //TODO Update top list
+    
+    if(relations->top_valid)
+        relations->top_valid = 0;
 }
 
 void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* id_rel)
@@ -134,14 +140,18 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     if(!rar) return;
 
     //Update arraylist entry if needed
-    relation* relitem = ht_search(relations->ht, id_rel, hash(id_rel));
-    if(!relitem) return;
+    relation* rel = ht_search(relations->ht, id_rel, hash(id_rel));
+    if(!rel) return;
 
     int direction = strcmp(id_orig, id_dest);
-    if(relarray_remove(rar, relitem->index, direction)) //If the relation existed remove it and update counts
+    if(relarray_remove(rar, rel->index, direction)) //If the relation existed remove it and update counts
     {
-        relitem->active_count--;
-        countarray_reduce(&(ent_dest->in_counts), relitem->index);
+        rel->active_count--;
+        int newval = countarray_reduce(&(ent_dest->in_counts), rel->index);
+        if(relations->top_valid && newval + 1 == rel->top.value)
+        {
+            toparray_remove(rel, id_dest);
+        }
     }
     if(rar->count == 0) //Free the link
     {
@@ -160,11 +170,60 @@ int cmpstr(const void* a, const void* b)
     return strcmp(aa,bb);
 }
 
-int cmptopar(const void* a, const void* b)
+void rebuild_needed_toplists(direct_ht ht, rel_db relations)
 {
-    const toparray aa = *(toparray*)a;
-    const toparray bb = *(toparray*)b;
-    return strcmp(aa.id_rel, bb.id_rel);
+    //PASS 1: Find max values
+    //Go over all buckets
+    const int size = ht->size;
+    bucket* buckets = ht->buckets;
+    relation** rels = relations->array;
+
+    int* to_be_rebuilt = malloc(relations->count * sizeof(int));
+    int M = 0;
+    for(int i = 0, m = relations->count; i < m; i++)
+    {
+        toparray* tarr = &(relations->array[i]->top);
+        if(!relations->top_valid || !tarr->valid)
+        {
+            to_be_rebuilt[M++] = i;
+            tarr->valid = 1;
+            tarr->sorted = 0;
+            tarr->value = 0;
+            tarr->count = 0;
+        }
+    }
+
+    if(M == 0) return;
+
+    for(int i = 0; i < size; i++)
+    {
+        bucket bkt = buckets[i];
+        if(bkt.hash != 0x0)
+        {
+            //Go over the count for entering relations
+            countarray cnt = ((entity)bkt.value)->in_counts;
+            if(cnt.count > 0)
+            for(int j = 0; j < M; j++)
+            {
+                int index = to_be_rebuilt[j];
+                if(index < cnt.size)
+                    toparray_update(rels[index], cnt.array[index], bkt.key);
+            }
+        }
+    }
+}
+
+void order_toplists(rel_db relations)
+{
+    relation** array = relations->array;
+    for(int i = 0, m = relations->count; i < m; i++)
+    {
+        if(array[i]->active_count > 0 && !array[i]->top.sorted)
+        {
+            qsort(array[i]->top.array, array[i]->top.count, sizeof(char*), cmpstr);
+            array[i]->top.sorted = 1;
+        }
+    }
 }
 
 void report(direct_ht ht, rel_db relations)
@@ -185,72 +244,29 @@ void report(direct_ht ht, rel_db relations)
         return;
     }
 
-    toparray* maxlist = calloc(M, sizeof(toparray));
+    rebuild_needed_toplists(ht, relations);
 
-    //PASS 1: Find max values
-    //Go over all buckets
-    const int size = ht->size;
-    bucket* buckets = ht->buckets;
-    for(int i = 0; i < size; i++)
-    {
-        bucket bkt = buckets[i];
-        if(bkt.hash != 0x0)
-        {
-            //Go over the count for entering relations
-            countarray cnt = ((entity)bkt.value)->in_counts;
-            for(int index = 0, max = cnt.size < M ? cnt.size : M; index < max; index++)
-            {
-                if(cnt.array[index] > maxlist[index].value)
-                    maxlist[index].value = cnt.array[index];
-            }
-        }
-    }
-    //PASS 2: Build lists
-    for(int i = 0; i < size; i++)
-    {
-        bucket bkt = buckets[i];
-        if(bkt.hash != 0x0)
-        {
-            //Go over the count for entering relations
-            countarray cnt = ((entity)bkt.value)->in_counts;
-            for(int index = 0, max = cnt.size < M ? cnt.size : M; index < max; index++)
-            {
-                int x = cnt.array[index];
-                if(maxlist[index].value > 0 && x == maxlist[index].value) //Add to the list
-                    arralylist_push(&maxlist[index], bkt.key);
-
-            }
-        }
-    }
-    for(int i = 0; i < M; i++)
-    {
-        qsort(maxlist[i].array, maxlist[i].count, sizeof(char*), cmpstr);
-        maxlist[i].id_rel = relations->array[i]->id_rel;
-    }
-    
+    order_toplists(relations);
     int first = 1;
-    qsort(maxlist, M, sizeof(toparray), cmptopar);
-    for(int i = 0; i < M; i++)
+
+    for(relation* curr = relations->list; curr != NULL; curr = curr->next)
     {
-        toparray topar = maxlist[i];
-        if(topar.value > 0)
+        if(curr->active_count > 0)
         {
             if(!first)
                 fputc(' ', stdout);
             first = 0;
             fputc('\"', stdout);
-            fputs(topar.id_rel, stdout);
+            fputs(curr->id_rel, stdout);
             fputs("\" ", stdout);
-            for(int j = 0; j < topar.count; j++)
+            for(int j = 0; j < curr->top.count; j++)
             {
                 fputc('\"', stdout);
-                fputs(topar.array[j], stdout);
+                fputs(curr->top.array[j], stdout);
                 fputs("\" ", stdout);
             }
-            printf("%d;", topar.value);
+            printf("%d;", curr->top.value);
         }
-        free(topar.array);
     }
     fputc('\n', stdout);
-    free(maxlist);
 }

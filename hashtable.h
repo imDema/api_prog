@@ -135,6 +135,27 @@ void* ht_search(direct_ht ht, char* key, uint hash)
     }
 }
 
+char* ht_search_keyptr(direct_ht ht, char* key, uint hash)
+{
+    //Starting index
+    int index = hash % ht->size;
+    //Increments
+    uint h2 = 1 + ((unsigned long) hash * HASH_B) % (ht->size - 1);
+    //Find an open slot
+    while(1)
+    {
+        bucket bkt = ht->buckets[index];
+
+        if(bkt.hash == hash && !strcmp(bkt.key, key)) //Found
+            return bkt.key;
+
+        else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket
+            return NULL;
+
+        index = (index + h2) % ht->size;
+    }
+}
+
 void ht_insert(direct_ht ht, char* key, void* value, uint hash)
 {
     if(ht_search(ht, key, hash) != NULL) return;

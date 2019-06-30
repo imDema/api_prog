@@ -5,8 +5,8 @@ typedef unsigned int uint;
 #include <stdio.h>
 #include <string.h>
 #include "arraylist.h"
+#include "toplist.h"
 #include "hashtable.h"
-//#include "toplist.h"
 #include "structures.h"
 #include "commands.h"
 
