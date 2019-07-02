@@ -62,3 +62,30 @@ relarray new_relarray()
     arl->count = 0;
     return arl;
 }
+
+typedef struct arraylist
+{
+    int size;
+    int count;
+    void** array;
+} arraylist;
+
+void arraylist_insert(arraylist* arl, void* value)
+{
+    if(arl->size == 0)
+    {
+        arl->size = ARRAYLIST_DEFAULTSIZE;
+        arl->array = malloc(ARRAYLIST_DEFAULTSIZE * sizeof(void*));
+    }
+    else if(arl->size == arl->count)
+    {
+        arl->size *= 2;
+        arl->array = realloc(arl->array, arl->size * sizeof(void*));
+    }
+    arl->array[arl->count++] = value;
+}
+
+void arraylist_reset(arraylist* arl)
+{
+    arl->count = 0;
+}
