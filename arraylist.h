@@ -13,14 +13,6 @@ struct _relarray
 };
 typedef struct _relarray* relarray;
 
-struct _countarray
-{
-    int* array;
-    int size;
-    int count;
-};
-typedef struct _countarray countarray;
-
 int relarray_add(relarray arl, int index, int direction)
 {
     byte mask = direction <= 0 ? FROM_FIRST : FROM_SECOND;
@@ -69,41 +61,4 @@ relarray new_relarray()
     arl->size = ARRAYLIST_DEFAULTSIZE;
     arl->count = 0;
     return arl;
-}
-
-int countarray_increase(countarray* acl, int index)
-{
-    if(acl->array == NULL)
-    {
-        acl->array = (int*) calloc(ARRAYLIST_DEFAULTSIZE,sizeof(int));
-        acl->size = ARRAYLIST_DEFAULTSIZE;
-        acl->count = 0;
-    }
-    if(index >= acl->size)
-    {
-        int s0 = acl->size;
-        while(index >= acl->size)
-            acl->size *= 2;
-        acl->array = (int*)realloc(acl->array, acl->size * sizeof(int));
-        for(int i = s0; i < acl->size; i++)
-            acl->array[i] = 0;
-    }
-    //If it's the first for this kind of relation increase count of active relations
-    if(acl->array[index] == 0) acl->count++;
-    return ++acl->array[index];
-}
-
-int countarray_reduce(countarray* acl, int index)
-{
-    if(index >= acl->size) return 0;
-    if(acl->array[index]-1 == 0)
-        acl->count--;
-    
-    return --acl->array[index];
-}
-
-void countarray_free(countarray* acl)
-{
-    free(acl->array);
-    free(acl);
 }
