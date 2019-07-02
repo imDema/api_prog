@@ -47,14 +47,9 @@ void addrel(direct_ht ht, rel_db relations,
     //Set active relation arraylist to proper value
     if(relarray_add(rar, rel->index, direction))
     {
-        rel->active_count++;
-        int newval = countarray_increase(&(ent_dest->in_counts), rel->index);
-
-        if(relations->top_valid && newval >= rel->top.value)
-        {
-            char* key = ht_search_keyptr(ht, id_dest, h_dest);
-            toparray_update(rel, newval, key);
-        }
+        int oldval = hh_increase(&(rel->hheap), ht_search_keyptr(ht, id_dest, h_dest), h_dest);
+        if(oldval - 1 >= rel->topval)
+            rel->topval = TOPVAL_INVALID;
     }
 }
 
@@ -74,13 +69,11 @@ void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bk
         {
             //If there is a relation entering the entity we are deleting
             byte b = rar->array[index];
-            if(b > 0)
+            if(b & mask)
             {
-                if(b & mask)
-                {
-                    dest->in_counts.array[index]--;
-                }
-                relations->array[index]->active_count -= b == 0x11 ? 2 : 1;
+                int oldval = hh_decrease(&(relations->array[index]->hheap), bkt.key, bkt.hash);
+                if(oldval == relations->array[index]->topval)
+                    relations->array[index]->topval = TOPVAL_INVALID;
             }
         }
     }
@@ -112,14 +105,17 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
         }
         ht_free(ent->ht_links);
     }
-    //Free the entity
-    free(ent->in_counts.array);
+    
+    for(int i = 0, m = relations->count; i < m; i++)
+    {
+        int oldval = hh_delete(&(relations->array[i]->hheap), id_ent, h_ent);
+        if(oldval == relations->array[i]->topval)
+            relations->array[i]->topval = TOPVAL_INVALID;
+    }
+
     free(ent);
 
     ht_delete(ht, id_ent, h_ent);
-    
-    if(relations->top_valid)
-        relations->top_valid = 0;
 }
 
 void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* id_rel)
@@ -147,12 +143,9 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, rel->index, direction)) //If the relation existed remove it and update counts
     {
-        rel->active_count--;
-        int newval = countarray_reduce(&(ent_dest->in_counts), rel->index);
-        if(relations->top_valid && newval + 1 == rel->top.value)
-        {
-            toparray_remove(rel, id_dest);
-        }
+        int oldval = hh_decrease(&(rel->hheap), id_dest, h_dest);
+        if (oldval == rel->topval)
+            rel->topval = TOPVAL_INVALID;
     }
     if(rar->count == 0) //Free the link
     {
@@ -160,8 +153,6 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
         ht_delete(ent_dest->ht_links, id_orig, h_orig);
         relarray_free(rar);
     }
-
-    //TODO: Update top lists
 }
 
 int cmpstr(const void* a, const void* b)
@@ -171,108 +162,47 @@ int cmpstr(const void* a, const void* b)
     return strcmp(aa,bb);
 }
 
-void rebuild_needed_toplists(direct_ht ht, rel_db relations)
+void rebuild_top(relation* rel)
 {
-    //PASS 1: Find max values
-    //Go over all buckets
-    const int size = ht->size;
-    bucket* buckets = ht->buckets;
-    relation** rels = relations->array;
-
-    int* to_be_rebuilt = malloc(relations->count * sizeof(int));
-    int M = 0;
-    for(int i = 0, m = relations->count; i < m; i++)
-    {
-        toparray* tarr = &(relations->array[i]->top);
-        if(!relations->top_valid || !tarr->valid)
-        {
-            to_be_rebuilt[M++] = i;
-            tarr->valid = 1;
-            tarr->sorted = 0;
-            tarr->value = 0;
-            tarr->count = 0;
-        }
-    }
-
-    if(M == 0)
-    {
-        free(to_be_rebuilt);
-        return;
-    }
-
-    for(int i = 0; i < size; i++)
-    {
-        bucket bkt = buckets[i];
-        if(bkt.hash != 0x0)
-        {
-            //Go over the count for entering relations
-            countarray cnt = ((entity)bkt.value)->in_counts;
-            if(cnt.count > 0)
-            for(int j = 0; j < M; j++)
-            {
-                int index = to_be_rebuilt[j];
-                if(index < cnt.size)
-                    toparray_update(rels[index], cnt.array[index], bkt.key);
-            }
-        }
-    }
-    free(to_be_rebuilt);
+    rel->topval = hh_peek(&(rel->hheap));
+    arraylist_reset(&(rel->top));
+    hh_addto_topar(&(rel->hheap), &(rel->top), rel->topval, 0);
+    qsort(rel->top.array, rel->top.count, sizeof(char*), cmpstr);
 }
 
-void order_toplists(rel_db relations)
+void report(rel_db relations)
 {
-    relation** array = relations->array;
-    for(int i = 0, m = relations->count; i < m; i++)
-    {
-        if(array[i]->active_count > 0 && !array[i]->top.sorted)
-        {
-            qsort(array[i]->top.array, array[i]->top.count, sizeof(char*), cmpstr);
-            array[i]->top.sorted = 1;
-        }
-    }
-}
+    char output[256];
+    output[0] = '\0';
 
-void report(direct_ht ht, rel_db relations)
-{
-    int M = relations->count;
-    int none = 1;
-    for(int i = 0; i < M; i++)
-    {
-        if(relations->array[i]->active_count > 0)
-        {
-            none = 0;
-            break;
-        }
-    }
-    if(none)
-    {
-        fputs("none\n", stdout);
-        return;
-    }
-
-    rebuild_needed_toplists(ht, relations);
-
-    order_toplists(relations);
     int first = 1;
 
     for(relation* curr = relations->list; curr != NULL; curr = curr->next)
     {
-        if(curr->active_count > 0)
+        if(curr->hheap.binheap.count > 0)
         {
+            if(curr->topval <=  0)
+                rebuild_top(curr);
+
+            output[0] = '\0';
             if(!first)
-                fputc(' ', stdout);
+                strcat(output, " ");
             first = 0;
-            fputc('\"', stdout);
-            fputs(curr->id_rel, stdout);
-            fputs("\" ", stdout);
+            strcat(output, "\"");
+            strcat(output, curr->id_rel);
+            strcat(output, "\" ");
             for(int j = 0; j < curr->top.count; j++)
             {
-                fputc('\"', stdout);
-                fputs(curr->top.array[j], stdout);
-                fputs("\" ", stdout);
+                strcat(output, "\"");
+                strcat(output, curr->top.array[j]);
+                strcat(output, "\" ");
             }
-            printf("%d;", curr->top.value);
+            sprintf(output + strlen(output), "%d;", curr->topval);
+            fputs(output, stdout);
         }
     }
-    fputc('\n', stdout);
+    if(output[0] == '\0')
+        fputs("none\n", stdout);
+    else
+        fputc('\n', stdout);
 }

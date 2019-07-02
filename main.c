@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
         }
         else if (!strcmp(opcode, "report")) //REPORT
         {
-            report(ht, relations);
+            report(relations);
         }
         else if(!strcmp(opcode, "debug")) //DEBUG
         {

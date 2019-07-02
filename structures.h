@@ -1,6 +1,7 @@
 #define MAXLEN 128
 #define DEFAULT_REL_DB_ARR_SIZE 4
 #define DEFAULT_HARR_SIZE 4
+#define TOPVAL_INVALID -1
 
 /////////NEW
 
@@ -31,7 +32,7 @@ typedef struct heap
 
 typedef struct hashheap
 {
-    direct_ht* ht;
+    direct_ht ht;
     heap binheap;
 } hashheap;
 
@@ -57,8 +58,10 @@ void heap_swap(heap* binheap, int a, int b)
     binheap->harr[b] = tmp;
 }
 
-void hh_increase(hashheap* hh, char* id_ent, uint hash)
+//Returns old value
+int hh_increase(hashheap* hh, char* id_ent, uint hash)
 {
+    if(hh->ht == NULL) hh->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
     heap_item* item = ht_search(hh->ht, id_ent, hash);
 
     if(item == NULL)
@@ -74,14 +77,14 @@ void hh_increase(hashheap* hh, char* id_ent, uint hash)
             hh->binheap.harr = realloc(hh->binheap.harr, hh->binheap.size * sizeof(heap_item*));
         }
 
-        heap_item* newitem = malloc(sizeof(heap_item));
-        ht_insert(hh->ht, id_ent, newitem, hash);
-        newitem->count = 1;
-        newitem->id_ent = id_ent;
+        item = malloc(sizeof(heap_item));
+        ht_insert(hh->ht, id_ent, item, hash);
+        item->count = 1;
+        item->id_ent = id_ent;
         
         int pos = hh->binheap.count++;
-        newitem->hashpos = pos;
-        hh->binheap.harr[pos] = newitem;
+        item->hashpos = pos;
+        hh->binheap.harr[pos] = item;
     }
     else
     {
@@ -95,6 +98,7 @@ void hh_increase(hashheap* hh, char* id_ent, uint hash)
             pos = parent(pos);
         }
     }
+    return item->count - 1;
 }
 
 void max_heapify(heap* binheap, int pos)
@@ -115,19 +119,26 @@ void max_heapify(heap* binheap, int pos)
     }
 }
 
-void hh_delete(hashheap* hh, char* id_ent, uint hash)
+//Returns old value
+int hh_delete(hashheap* hh, char* id_ent, uint hash)
 {
+    if(hh->ht == NULL) return 0;
     heap_item* item = ht_search(hh->ht, id_ent, hash);
-    if(item == NULL) fputs("ERROR, trying to decrease not existing item in heap", stderr);
+    if(item == NULL) return 0;
+    int oldval = item->count;
     for(int pos = item->hashpos; pos != 0; pos = parent(pos))
         heap_swap(&(hh->binheap), pos, parent(pos));
     
     heap_swap(&(hh->binheap), 0, hh->binheap.count - 1);
     hh->binheap.count--;
     max_heapify(&(hh->binheap), 0);
+    ht_delete(hh->ht, id_ent, hash);
+    free(item);
+    return oldval;
 }
 
-void hh_decrease(hashheap* hh, char* id_ent, uint hash)
+//Returns old value
+int hh_decrease(hashheap* hh, char* id_ent, uint hash)
 {
     heap_item* item = ht_search(hh->ht, id_ent, hash);
     if(item == NULL) fputs("ERROR, trying to decrease not existing item in heap", stderr);
@@ -137,7 +148,9 @@ void hh_decrease(hashheap* hh, char* id_ent, uint hash)
     {
         item->count--;
         max_heapify(&(hh->binheap), item->hashpos);
+        return item->count;
     }
+    return 0;
 }
 
 int hh_peek(hashheap* hh)
@@ -147,7 +160,7 @@ int hh_peek(hashheap* hh)
 
 void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
 {
-    if(hh->binheap.harr[root] == count)
+    if(root < hh->binheap.count && hh->binheap.harr[root]->count == count)
     {
         arraylist_insert(topar, hh->binheap.harr[root]->id_ent);
         hh_addto_topar(hh,topar,count,left(root));
@@ -181,7 +194,7 @@ struct _relation
     struct _relation* next;
     char* id_rel;
     int index;
-    int valid_top;
+    int topval;
     arraylist top;
     hashheap hheap;
 };
@@ -207,10 +220,9 @@ relation* create_relation(rel_db relations, char* id_rel)
     if(rel != NULL) return rel;
 
     //Create new node
-    rel = malloc(sizeof(relation));
+    rel = calloc(1, sizeof(relation));
     rel->id_rel = strndup(id_rel, MAXLEN);
     rel->index = relations->count;
-    //TODO INIT TOPLIST
 
     //Insert in linked list sorting by id_rel
     if(relations->list == NULL || strcmp(id_rel, relations->list->id_rel) < 0)
@@ -259,6 +271,8 @@ void rel_db_free(rel_db relations)
 {
     for(int i = 0; i < relations->count; i++)
     {
+        ht_free(relations->array[i]->hheap.ht);
+        free(relations->array[i]->hheap.binheap.harr);
         free(relations->array[i]->top.array);
         free(relations->array[i]->id_rel);
         free(relations->array[i]);
