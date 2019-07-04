@@ -21,13 +21,14 @@ int main(int argc, char* argv[])
     FILE* inptr = stdin;
     inptr = fopen("tests/test.in","r"); //FOR DEBUGGING
 
-    //int i = 0;
+    //int i = 1;
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
+        //printf("%d\n", i++); // DEGUGGING ONLY
         //fputs(line, stdout); //DEBUGGING ONLY
-        //if(strstr(line, "Problematic_entry"))
+        //if(i == 810)//strstr(line, "Joseph_Carey"))
             //line[0] = line[0];
 
         char* opcode = strtok(line, " \"\n");

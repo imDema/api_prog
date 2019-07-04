@@ -143,8 +143,8 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, rel->index, direction)) //If the relation existed remove it and update counts
     {
-        int oldval = hh_decrease(&(rel->hheap), id_dest, h_dest);
-        if (oldval == rel->topval)
+        int newval = hh_decrease(&(rel->hheap), id_dest, h_dest);
+        if (newval + 1 == rel->topval)
             rel->topval = TOPVAL_INVALID;
     }
     if(rar->count == 0) //Free the link

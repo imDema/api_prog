@@ -62,7 +62,8 @@ void heap_swap(heap* binheap, int a, int b)
 //Returns new value
 int hh_increase(hashheap* hh, char* id_ent, uint hash)
 {
-    if(hh->ht == NULL) hh->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
+    if(hh->ht == NULL)
+        hh->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
     heap_item* item = ht_search(hh->ht, id_ent, hash);
 
     if(item == NULL)
@@ -108,9 +109,11 @@ void max_heapify(heap* binheap, int pos)
     int r = right(pos);
     int greatest = pos;
 
-    if (l < binheap->count && binheap->harr[l] > binheap->harr[greatest]) 
+    heap_item** harr = binheap->harr;
+
+    if (l < binheap->count && harr[l]->count > harr[greatest]->count) 
         greatest = l; 
-    if (r < binheap->count && binheap->harr[r] > binheap->harr[greatest]) 
+    if (r < binheap->count && harr[r]->count > harr[greatest]->count) 
         greatest = r; 
 
     if (greatest != pos)

@@ -93,7 +93,7 @@ void ht_put(direct_ht ht, char* key, void* value, uint hash)
     ht->buckets[index].key = key;
     ht->buckets[index].value = value;
     ht->count++;
-    ht->occupied++;
+    ht->occupied++; //TODO move up and put behind if key == NULL
 }
 
 void expand_hashtable(direct_ht ht)
@@ -120,7 +120,7 @@ void* ht_search(direct_ht ht, char* key, uint hash)
     int index = hash % ht->size;
     //Increments
     uint h2 = 1 + ((unsigned long) hash * HASH_B) % (ht->size - 1);
-    //Find an open slot
+    
     while(1)
     {
         bucket bkt = ht->buckets[index];
@@ -141,7 +141,7 @@ char* ht_search_keyptr(direct_ht ht, char* key, uint hash)
     int index = hash % ht->size;
     //Increments
     uint h2 = 1 + ((unsigned long) hash * HASH_B) % (ht->size - 1);
-    //Find an open slot
+    
     while(1)
     {
         bucket bkt = ht->buckets[index];
