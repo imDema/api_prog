@@ -46,11 +46,12 @@ int left(int i)
 }
 int right (int i)
 {
-    return 2+i+2;
+    return 2*i+2;
 }
 
 void heap_swap(heap* binheap, int a, int b)
 {
+    if(a == b) return;
     binheap->harr[a]->hashpos = b;
     binheap->harr[b]->hashpos = a;
     heap_item* tmp = binheap->harr[a];
@@ -58,7 +59,7 @@ void heap_swap(heap* binheap, int a, int b)
     binheap->harr[b] = tmp;
 }
 
-//Returns old value
+//Returns new value
 int hh_increase(hashheap* hh, char* id_ent, uint hash)
 {
     if(hh->ht == NULL) hh->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
@@ -80,7 +81,7 @@ int hh_increase(hashheap* hh, char* id_ent, uint hash)
         item = malloc(sizeof(heap_item));
         ht_insert(hh->ht, id_ent, item, hash);
         item->count = 1;
-        item->id_ent = id_ent;
+        item->id_ent = ht_search_keyptr(hh->ht, id_ent, hash);
         
         int pos = hh->binheap.count++;
         item->hashpos = pos;
@@ -98,7 +99,7 @@ int hh_increase(hashheap* hh, char* id_ent, uint hash)
             pos = parent(pos);
         }
     }
-    return item->count - 1;
+    return item->count;
 }
 
 void max_heapify(heap* binheap, int pos)
@@ -137,7 +138,7 @@ int hh_delete(hashheap* hh, char* id_ent, uint hash)
     return oldval;
 }
 
-//Returns old value
+//Returns new value
 int hh_decrease(hashheap* hh, char* id_ent, uint hash)
 {
     heap_item* item = ht_search(hh->ht, id_ent, hash);

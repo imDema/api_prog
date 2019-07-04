@@ -47,8 +47,8 @@ void addrel(direct_ht ht, rel_db relations,
     //Set active relation arraylist to proper value
     if(relarray_add(rar, rel->index, direction))
     {
-        int oldval = hh_increase(&(rel->hheap), ht_search_keyptr(ht, id_dest, h_dest), h_dest);
-        if(oldval - 1 >= rel->topval)
+        int newval = hh_increase(&(rel->hheap), id_dest, h_dest);
+        if(newval >= rel->topval) // If item was in top list or should enter it
             rel->topval = TOPVAL_INVALID;
     }
 }
@@ -71,8 +71,8 @@ void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bk
             byte b = rar->array[index];
             if(b & mask)
             {
-                int oldval = hh_decrease(&(relations->array[index]->hheap), bkt.key, bkt.hash);
-                if(oldval == relations->array[index]->topval)
+                int newval = hh_decrease(&(relations->array[index]->hheap), bkt.key, bkt.hash);
+                if(newval + 1 == relations->array[index]->topval) // If item was in top list
                     relations->array[index]->topval = TOPVAL_INVALID;
             }
         }
@@ -109,7 +109,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     for(int i = 0, m = relations->count; i < m; i++)
     {
         int oldval = hh_delete(&(relations->array[i]->hheap), id_ent, h_ent);
-        if(oldval == relations->array[i]->topval)
+        if(oldval == relations->array[i]->topval) //If item was in top list
             relations->array[i]->topval = TOPVAL_INVALID;
     }
 
