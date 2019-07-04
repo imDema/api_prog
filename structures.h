@@ -276,6 +276,10 @@ void rel_db_free(rel_db relations)
     for(int i = 0; i < relations->count; i++)
     {
         ht_free(relations->array[i]->hheap.ht);
+        for(int j = 0, m = relations->array[i]->hheap.binheap.count; j < m; j++)
+        {
+            free(relations->array[i]->hheap.binheap.harr[j]);
+        }
         free(relations->array[i]->hheap.binheap.harr);
         free(relations->array[i]->top.array);
         free(relations->array[i]->id_rel);
