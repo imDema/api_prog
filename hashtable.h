@@ -89,11 +89,12 @@ void ht_put(direct_ht ht, char* key, void* value, uint hash)
             break;
         index = (index + h2) % ht->size;
     }
+    if(ht->buckets[index].value == NULL) //Increase occupation only if the bucket was never used
+        ht->occupied++;
     ht->buckets[index].hash = hash;
     ht->buckets[index].key = key;
     ht->buckets[index].value = value;
     ht->count++;
-    ht->occupied++; //TODO move up and put behind if key == NULL
 }
 
 void expand_hashtable(direct_ht ht)
@@ -108,7 +109,6 @@ void expand_hashtable(direct_ht ht)
             ht_put(&new_ht, bkt.key, bkt.value, bkt.hash);
         }
     }
-    ht->occupied = ht->count;
 
     free(ht->buckets);
     *ht = new_ht;

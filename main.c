@@ -19,17 +19,17 @@ int main(int argc, char* argv[])
     direct_ht ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     FILE* inptr = stdin;
-    inptr = fopen("tests/test.in","r"); //FOR DEBUGGING
+    inptr = fopen("tests/test.1.in","r"); //FOR DEBUGGING
 
-    int i = 0;
+    //int i = 0;
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
         //printf("%d\n", i++); // DEGUGGING ONLY
         //fputs(line, stdout); //DEBUGGING ONLY
-        if(i++ == 526)//strstr(line, "Joseph_Carey"))
-            line[0] = line[0];
+        //if(i++ == 526)//strstr(line, "Joseph_Carey"))
+            //line[0] = line[0];
 
         char* opcode = strtok(line, " \"\n");
         
