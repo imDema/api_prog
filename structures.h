@@ -94,7 +94,7 @@ int hh_increase(hashheap* hh, char* id_ent, uint hash)
         int pos = item->hashpos;
         heap_item** harr = hh->binheap.harr;
         
-        while (pos != 0 && harr[parent(pos)] < harr[pos])
+        while (pos != 0 && harr[parent(pos)]->count < harr[pos]->count)
         {
             heap_swap(&(hh->binheap), pos, parent(pos));
             pos = parent(pos);
