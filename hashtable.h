@@ -97,9 +97,9 @@ void ht_put(direct_ht ht, char* key, void* value, uint hash)
     ht->count++;
 }
 
-void expand_hashtable(direct_ht ht)
+void resize_hashtable(direct_ht ht, int size)
 {
-    struct _direct_ht new_ht = create_direct_ht(ht->size * 2);
+    struct _direct_ht new_ht = create_direct_ht(size);
 
     for(int i = 0; i < ht->size; i++)
     {
@@ -161,7 +161,7 @@ void ht_insert(direct_ht ht, char* key, void* value, uint hash)
     if(ht_search(ht, key, hash) != NULL) return;
 
     if(ht->occupied >= ht->loadsize)
-        expand_hashtable(ht);
+        resize_hashtable(ht, ht->size * 2);
     
     ht_put(ht, strndup(key, MAXLEN), value, hash);
 }
@@ -190,6 +190,11 @@ void ht_delete(direct_ht ht, char* key, uint hash)
             break;
 
         index = (index + h2) % ht->size;
+    }
+    //Decrease if many deleted
+    if(ht->size > 16 && ht->count < ht->loadsize / 6)
+    {
+        resize_hashtable(ht, ht->size / 2);
     }
 }
 
