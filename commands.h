@@ -6,10 +6,9 @@ void addent(direct_ht ht, char* id_ent)
     //Check if duplicate
     if(ht_search(ht,id_ent, h) != NULL)
         return;
-
+    entity ent = new_entity(id_ent);
     //Create new and insert in ht
-    entity ent = new_entity();
-    ht_insert(ht, id_ent, ent, h);
+    ht_insert(ht, ent->id_ent, ent, h);
 }
 
 void addrel(direct_ht ht, rel_db relations,
@@ -22,21 +21,16 @@ void addrel(direct_ht ht, rel_db relations,
         ent_dest = ht_search(ht, id_dest, h_dest);
     if(ent_orig == NULL || ent_dest == NULL)
         return;
-    
-    //Initialize link ht if needed
-    if(ent_orig->ht_links == NULL)
-        ent_orig->ht_links = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
-    if(ent_dest->ht_links == NULL)
-        ent_dest->ht_links = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     //Get the relation array for the link
-    relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
-    if(rar == NULL)
+    aa_node link = aa_search(ent_orig->tree_root, id_dest);
+
+    if(link == NULL)
     {
         //Initialize it if needed
-        rar = new_relarray();
-        ht_insert(ent_dest->ht_links, id_orig, rar, h_orig);
-        ht_insert(ent_orig->ht_links, id_dest, rar, h_dest);
+        relarray rar = new_relarray();
+        aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
+        aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
     }
 
     //Get relation info
@@ -45,41 +39,43 @@ void addrel(direct_ht ht, rel_db relations,
     int direction = strcmp(id_orig, id_dest);
 
     //Set active relation arraylist to proper value
+    relarray rar = link->rar;
     if(relarray_add(rar, rel->index, direction))
     {
-        int newval = hh_increase(&(rel->hheap), id_dest, h_dest);
-        if(newval >= rel->topval) // If item was in top list or should enter it
-            rel->topval = TOPVAL_INVALID;
+        increase_relation_count(relations, rel->index, id_dest, h_dest);
     }
 }
 
-void dellink(direct_ht ht, rel_db relations, char* id_ent, uint h_ent, bucket bkt)
+void dellinks(const direct_ht ht, const rel_db relations, const aa_node tree, const char* id_ent)
 {
-    entity dest = ht_search(ht, bkt.key, bkt.hash);
+    if(tree == NULL)
+        return;
+    
+    dellinks(ht, relations, tree->left, id_ent);
+    dellinks(ht, relations, tree->right, id_ent);
 
-    //Remove all outbound relations
-    relarray rar = bkt.value;
-    if(rar->count > 0) //Decrease count for every active relation on link
+    uint h_ent2 = hash(tree->key);
+
+    entity ent2 = ht_search(ht, tree->key, h_ent2);
+
+    int m = tree->rar->size < relations->count ? tree->rar->size : relations->count;
+    byte* ar = tree->rar->array;
+    int order = strcmp(id_ent, ent2->id_ent);
+    byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
+    for(int index = 0; index < m; index++)
     {
-        int order = strcmp(id_ent, bkt.key);
-        byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
-
-        int lim = rar->size < relations->count ? rar->size : relations->count;
-        for(int index = 0; index < lim; index++)
+        byte b = ar[index];
+        if(b & mask)
         {
-            //If there is a relation entering the entity we are deleting
-            byte b = rar->array[index];
-            if(b & mask)
-            {
-                int newval = hh_decrease(&(relations->array[index]->hheap), bkt.key, bkt.hash);
-                if(newval + 1 == relations->array[index]->topval) // If item was in top list
-                    relations->array[index]->topval = TOPVAL_INVALID;
-            }
+            int newval = hh_decrease(&(relations->array[index]->hheap), ent2->id_ent, h_ent2);
+            if(newval + 1 == relations->array[index]->topval) // If item was in top list
+                relations->array[index]->topval = TOPVAL_INVALID;
         }
     }
 
-    relarray_free(rar);
-    ht_delete(dest->ht_links, id_ent, h_ent);
+    aa_delete(ent2->tree_root, id_ent);
+    relarray_free(tree->rar);
+    free(tree);
 }
 
 void delent(direct_ht ht, rel_db relations, char* id_ent)
@@ -91,28 +87,13 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     if(ent == NULL) return;
 
     //Update all outbound links relation counts and delete the links
-    direct_ht ent_ht = ent->ht_links;
-    if(ent_ht != NULL)
-    {
-        if(ent_ht->count > 0)
-        for(int i = 0, m = ent_ht->size; i < m; i++)
-        {
-            bucket bkt = ent_ht->buckets[i];
-            if(bkt.hash != 0) //If a valid link has been found
-            {
-                dellink(ht, relations, id_ent, h_ent, bkt);
-            }
-        }
-        ht_free(ent->ht_links);
-    }
-    
-    for(int i = 0, m = relations->count; i < m; i++)
-    {
-        int oldval = hh_delete(&(relations->array[i]->hheap), id_ent, h_ent);
-        if(oldval == relations->array[i]->topval) //If item was in top list
-            relations->array[i]->topval = TOPVAL_INVALID;
-    }
+    aa_node tree = ent->tree_root;
+    dellinks(ht, relations, tree, id_ent);
 
+    for(int index = 0, m = relations->count; index < m; index++)
+        delete_relation_count(relations, index, id_ent, h_ent); 
+
+    free(ent->id_ent);
     free(ent);
 
     ht_delete(ht, id_ent, h_ent);
@@ -130,8 +111,11 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     
 
     //Search link
-    if(ent_orig->ht_links == NULL) return;
-    relarray rar = ht_search(ent_orig->ht_links, id_dest, h_dest);
+    aa_node link = aa_search(ent_orig->tree_root, id_dest);
+
+    if(link == NULL) return;
+
+    relarray rar = link->rar;
     
     //Skip if it does not exist
     if(!rar) return;
@@ -143,14 +127,13 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, rel->index, direction)) //If the relation existed remove it and update counts
     {
-        int newval = hh_decrease(&(rel->hheap), id_dest, h_dest);
-        if (newval + 1 == rel->topval)
-            rel->topval = TOPVAL_INVALID;
+        decrease_relations_count(relations, rel->index, id_dest, h_dest);
     }
     if(rar->count == 0) //Free the link
     {
-        ht_delete(ent_orig->ht_links, id_dest, h_dest);
-        ht_delete(ent_dest->ht_links, id_orig, h_orig);
+        aa_delete(ent_orig->tree_root, id_dest);
+        aa_delete(ent_dest->tree_root, id_orig);
+
         relarray_free(rar);
     }
 }

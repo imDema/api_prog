@@ -163,7 +163,7 @@ void ht_insert(direct_ht ht, char* key, void* value, uint hash)
     if(ht->occupied >= ht->loadsize)
         resize_hashtable(ht, ht->size * 2);
     
-    ht_put(ht, strndup(key, MAXLEN), value, hash);
+    ht_put(ht, key, value, hash);
 }
 
 void ht_delete(direct_ht ht, char* key, uint hash)
@@ -181,7 +181,6 @@ void ht_delete(direct_ht ht, char* key, uint hash)
             //Free key, set hash to 0 and mark as deleted by setting value to ht->bucket
             ht->buckets[index].hash = 0;
             ht->buckets[index].value = ht->buckets; //Marked as deleted to keep potential colliding walks intact
-            free(ht->buckets[index].key);
             ht->buckets[index].key = NULL;
             ht->count--;
             break;

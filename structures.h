@@ -3,11 +3,14 @@
 #define DEFAULT_HARR_SIZE 4
 #define TOPVAL_INVALID -1
 
+//TODO IMPORTANT, duplicate strings before hashtable insertion, ht_insert no longer strndups
+
 /////////NEW
 
-entity new_entity()
+entity new_entity(char* id_ent)
 {
-    return calloc(1, sizeof(struct _entity));
+    entity ent = calloc(1, sizeof(struct _entity));
+    ent->id_ent = strndup(id_ent, MAXLEN);
 }
 
 typedef struct heap_item
@@ -43,6 +46,7 @@ typedef struct _aa_node* aa_node;
 
 struct _entity
 {
+    char* id_ent;
     aa_node tree_root;
 };
 typedef struct _entity* entity;
@@ -327,26 +331,26 @@ void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
     }
 }
 
-//TODO:
-/*
-Implement pointer based binary heap
-Point to nodes using a hashtable (key = id_ent)
-Increment:
-    Search in ht for id
-        Exists? Go to node, increment, balance heap
-        Doesn't? Create node, add to ht, Insert in heap
+void decrease_relations_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
+    if (newval + 1 == relations->array[index]->topval)
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
 
-Decrement:
-    Search in ht for id
-        Doesn't exist? return
-        Exists?
-            Decrement
-                Count == 0? Delete from heap, delete from ht
-                Count > 0? Balance heap
+void increase_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_increase(&(relations->array[index]->hheap), id_ent, h_ent);
+    if(newval >= relations->array[index]->topval) // If item was in top list or should enter it
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
 
-Peek:
-    Return root
- */
+void delete_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
+    if(newval + 1 == relations->array[index]->topval) // If item was in top list
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
 
 struct _relation
 {
@@ -445,24 +449,20 @@ void rel_db_free(rel_db relations)
     free(relations);
 }
 
-void free_prev_relrrays(direct_ht ht, bucket bktdelete)
-{
-    entity ent = bktdelete.value;
+//TODO check if all freeing methods are correct, attention to hashtable key allocation which has now changed
 
-    //Delete the links
-    if(ent->ht_links != NULL)
-    for(int i = 0; i < ent->ht_links->size; i++)
-    {
-        bucket bkt = ent->ht_links->buckets[i];
-        if(bkt.hash != 0) //If a valid link has been found
-        {
-            if(strcmp(bkt.key, bktdelete.key) <= 0)
-            {
-                relarray_free(bkt.value);
-            }
-            free(bkt.key);
-        }
-    }
+void free_prev_relrrays(aa_node tree, char* free_delimiter)
+{
+    if(tree == NULL)
+        return;
+    
+    free_prev_relrrays(tree->left, free_delimiter);
+    free_prev_relrrays(tree->right, free_delimiter);
+
+    if(strcmp(tree->key, free_delimiter) <= 0)
+        relarray_free(tree->rar);
+
+    free(tree);
 }
 
 void free_entities(direct_ht ht)
@@ -473,16 +473,10 @@ void free_entities(direct_ht ht)
         if(bkt.hash == 0)
             continue;
 
-        free_prev_relrrays(ht, bkt);
-        entity ent = bkt.value;
-        if(ent->ht_links != NULL)
-        {
-            free(ent->ht_links->buckets);
-            free(ent->ht_links);
-        }
+        aa_node tree = bkt.value;
+        free_prev_relrrays(tree, bkt.key);
 
         free(bkt.key);
-        free(bkt.value);
     }
     free(ht->buckets);
     free(ht);
