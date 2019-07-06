@@ -5,12 +5,6 @@
 
 /////////NEW
 
-struct _entity
-{
-    direct_ht ht_links;
-};
-typedef struct _entity* entity;
-
 entity new_entity()
 {
     return calloc(1, sizeof(struct _entity));
@@ -35,6 +29,161 @@ typedef struct hashheap
     direct_ht ht;
     heap binheap;
 } hashheap;
+
+struct _aa_node
+{
+    char* key;
+    relarray rar;
+
+    int level;
+    struct _aa_node* left;
+    struct _aa_node* right;
+};
+typedef struct _aa_node* aa_node;
+
+struct _entity
+{
+    aa_node tree_root;
+};
+typedef struct _entity* entity;
+
+aa_node skew(aa_node node)
+{
+    if(node == NULL || node->left == NULL)
+        return node;
+
+    if(node->left->level == node->level)
+    {
+        aa_node left = node->left;
+        node->left = left->right;
+        left->right = node;
+        return left;
+    }
+    else return node;
+}
+
+aa_node split(aa_node node)
+{
+    if(node == NULL || node->right == NULL || node->right->right == NULL)
+        return node;
+    if(node->level == node->right->right->level)
+    {
+        aa_node right = node->right;
+        node->right = right->left;
+        right->left = node;
+        right->level++;
+        return right;
+    }
+    else return node;
+}
+
+aa_node aa_insert(aa_node tree, char* key, relarray value)
+{
+    if(tree == NULL)
+    {
+        aa_node newnode = malloc(sizeof(struct _aa_node));
+        newnode->key = key;
+        newnode->rar = value;
+        newnode->left = NULL;
+        newnode->right = NULL;
+        newnode->level = 1;
+        return newnode;
+    }
+    else if(strcmp(key, tree->key) < 0)
+        tree->left = aa_insert(tree->left, key, value);
+    else if(strcmp(key, tree->key) > 0)
+        tree->right = aa_insert(tree->right, key, value);
+    else
+        fputs("ERROR, trying to add entry with duplicate id", stderr);
+    tree = skew(tree);
+    tree = split(tree);
+    return tree;
+}
+
+aa_node aa_pred(aa_node node)
+{
+    aa_node curr = node->left;
+    while(curr->right != NULL)
+        curr = curr->right;
+    return curr;
+}
+aa_node aa_succ(aa_node node)
+{
+    aa_node curr = node->right;
+    while(curr->left != NULL)
+        curr = curr->left;
+    return curr;
+}
+
+void aa_decrease_level(aa_node tree)
+{
+    int correct = tree->left->level < tree->right->level ? tree->left->level + 1 : tree->right->level + 1;
+    if(tree->level > correct)
+    {
+        tree->level = correct;
+
+        if(tree->right->level > correct)
+            tree->right->level = correct;
+    }
+}
+
+aa_node aa_delete(aa_node tree, char* key)
+{
+    //Search
+    if(tree == NULL)
+        return tree;
+
+    else if(strcmp(key, tree->key) < 0)
+        tree->left = aa_delete(tree->left, key);
+    else if(strcmp(key, tree->key) > 0)
+        tree->right = aa_delete(tree->right, key);
+    else
+    {
+        //Delete
+        if(tree->left == NULL && tree->right == NULL)
+        {
+            free(tree);
+            return NULL;
+        }
+        else if(tree->left == NULL)
+        {
+            aa_node succ = aa_succ(tree);
+            struct _aa_node s_val = *succ;
+            tree->right = aa_delete(succ->key, tree->right);
+            tree->key = s_val.key;
+            tree->rar = s_val.rar;
+        }
+        else
+        {
+            aa_node pred = aa_pred(tree);
+            struct _aa_node p_val = *pred;
+            tree->left = aa_delete(pred->key, tree->left);
+            tree->key = p_val.key;
+            tree->rar = p_val.rar;
+        }
+    }
+    //Rebalance
+    aa_decrease_level(tree);
+    tree = skew(tree);
+    tree->right = skew(tree->right);
+    if(tree->right != NULL)
+        tree->right->right = skew(tree->right->right);
+    tree = split(tree);
+    tree->right = split(tree->right);
+    return tree;
+}
+
+aa_node aa_search(aa_node tree, char* key)
+{
+    if(tree == NULL)
+        return NULL;
+    else if(strcmp(key, tree->key) < 0)
+        return aa_search(tree->left, key);
+    else if(strcmp(key, tree->key) > 0)
+        return aa_search(tree->right, key);
+    else
+        return tree;
+}
 
 int parent(int i)
 {

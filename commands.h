@@ -172,7 +172,7 @@ void rebuild_top(relation* rel)
 
 void report(rel_db relations)
 {
-    char output[512];
+    char output[1024];
     output[0] = '\0';
 
     int first = 1;
