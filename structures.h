@@ -45,8 +45,9 @@ typedef struct _entity* entity;
 
 entity new_entity(const char* id_ent)
 {
-    entity ent = calloc(1, sizeof(struct _entity));
+    entity ent = malloc(sizeof(struct _entity));
     ent->id_ent = strndup(id_ent, MAXLEN);
+    ent->tree_root = NULL;
     return ent;
 }
 
@@ -120,12 +121,15 @@ aa_node aa_succ(aa_node node)
 
 void aa_decrease_level(aa_node tree)
 {
-    int correct = tree->left->level < tree->right->level ? tree->left->level + 1 : tree->right->level + 1;
+    int left = tree->left != NULL ? tree->left->level : 0;
+    int right = tree->right != NULL ? tree->right->level : 0;
+
+    int correct = left < right ? left + 1 : right + 1;
     if(tree->level > correct)
     {
         tree->level = correct;
 
-        if(tree->right->level > correct)
+        if(right > 0 && tree->right->level > correct)
             tree->right->level = correct;
     }
 }
@@ -134,7 +138,7 @@ aa_node aa_delete(aa_node tree, const char* key)
 {
     //Search
     if(tree == NULL)
-        return tree;
+        return NULL;
 
     else if(strcmp(key, tree->key) < 0)
         tree->left = aa_delete(tree->left, key);
@@ -160,7 +164,7 @@ aa_node aa_delete(aa_node tree, const char* key)
         {
             aa_node pred = aa_pred(tree);
             struct _aa_node p_val = *pred;
-            tree->left = aa_delete(tree->left, pred->key);
+            tree->left = aa_delete(tree->left, p_val.key);
             tree->key = p_val.key;
             tree->rar = p_val.rar;
         }
@@ -304,7 +308,7 @@ int hh_decrease(hashheap* hh, const char* id_ent, uint hash)
 {
     heap_item* item = ht_search(hh->ht, id_ent, hash);
     if(item == NULL)
-        fputs("ERROR, trying to decrease not existing item in heap", stderr);
+        return -1;
     if(item->count == 1)
         hh_delete(hh, id_ent, hash);
     else
@@ -414,8 +418,8 @@ void increase_relation_count(const rel_db relations, int index, const char* id_e
 
 void delete_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
 {
-    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
-    if(newval + 1 == relations->array[index]->topval) // If item was in top list
+    int oldval = hh_delete(&(relations->array[index]->hheap), id_ent, h_ent);
+    if(oldval == relations->array[index]->topval) // If item was in top list
         relations->array[index]->topval = TOPVAL_INVALID;
 }
 

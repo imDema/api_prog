@@ -45,11 +45,11 @@ void addrel(direct_ht ht, rel_db relations,
     //Set active relation arraylist to proper value
     if(relarray_add(rar, rel->index, direction))
     {
-        increase_relation_count(relations, rel->index, id_dest, h_dest);
+        increase_relation_count(relations, rel->index, ent_dest->id_ent, h_dest);
     }
 }
 
-void dellinks(const direct_ht ht, const rel_db relations, const aa_node tree, const char* id_ent)
+void dellinks(const direct_ht ht, const rel_db relations, aa_node tree, const char* id_ent)
 {
     if(tree == NULL)
         return;
@@ -74,9 +74,10 @@ void dellinks(const direct_ht ht, const rel_db relations, const aa_node tree, co
         }
     }
 
-    aa_delete(ent2->tree_root, id_ent);
+    ent2->tree_root = aa_delete(ent2->tree_root, id_ent);
     relarray_free(tree->rar);
-    free(tree);
+    if(order != 0)
+        free(tree);
 }
 
 void delent(direct_ht ht, rel_db relations, const char* id_ent)
@@ -94,10 +95,9 @@ void delent(direct_ht ht, rel_db relations, const char* id_ent)
     for(int index = 0, m = relations->count; index < m; index++)
         delete_relation_count(relations, index, id_ent, h_ent); 
 
+    ht_delete(ht, id_ent, h_ent);
     free(ent->id_ent);
     free(ent);
-
-    ht_delete(ht, id_ent, h_ent);
 }
 
 void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_dest, const char* id_rel)
@@ -132,9 +132,9 @@ void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_
     }
     if(rar->count == 0) //Free the link
     {
-        aa_delete(ent_orig->tree_root, id_dest);
+        ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
         if(ent_orig != ent_dest)
-            aa_delete(ent_dest->tree_root, id_orig);
+            ent_dest->tree_root = aa_delete(ent_dest->tree_root, id_orig);
 
         relarray_free(rar);
     }
