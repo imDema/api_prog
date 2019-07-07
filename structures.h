@@ -98,7 +98,7 @@ aa_node aa_insert(aa_node tree, const char* key, relarray value)
     else if(strcmp(key, tree->key) > 0)
         tree->right = aa_insert(tree->right, key, value);
     else
-        fputs("ERROR, trying to add entry with duplicate id", stderr);
+        return tree;
     tree = skew(tree);
     tree = split(tree);
     return tree;

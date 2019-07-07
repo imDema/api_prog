@@ -74,8 +74,8 @@ void dellinks(const direct_ht ht, const rel_db relations, aa_node tree, const ch
         }
     }
 
-    ent2->tree_root = aa_delete(ent2->tree_root, id_ent);
     relarray_free(tree->rar);
+    ent2->tree_root = aa_delete(ent2->tree_root, id_ent);
     if(order != 0)
         free(tree);
 }
@@ -89,8 +89,7 @@ void delent(direct_ht ht, rel_db relations, const char* id_ent)
     if(ent == NULL) return;
 
     //Update all outbound links relation counts and delete the links
-    aa_node tree = ent->tree_root;
-    dellinks(ht, relations, tree, id_ent);
+    dellinks(ht, relations, ent->tree_root, ent->id_ent);
 
     for(int index = 0, m = relations->count; index < m; index++)
         delete_relation_count(relations, index, id_ent, h_ent); 
