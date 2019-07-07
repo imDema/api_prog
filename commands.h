@@ -1,4 +1,4 @@
-void addent(direct_ht ht, char* id_ent)
+void addent(direct_ht ht, const char* id_ent)
 {
     //Calculate hash
     uint h = hash(id_ent);
@@ -12,7 +12,7 @@ void addent(direct_ht ht, char* id_ent)
 }
 
 void addrel(direct_ht ht, rel_db relations,
-                char* id_orig, char* id_dest, char* id_rel)
+                const char* id_orig, const char* id_dest, const char* id_rel)
 {
     //Check if both entities exist
     uint h_orig = hash(id_orig),
@@ -24,14 +24,18 @@ void addrel(direct_ht ht, rel_db relations,
 
     //Get the relation array for the link
     aa_node link = aa_search(ent_orig->tree_root, id_dest);
+    relarray rar;
 
     if(link == NULL)
     {
         //Initialize it if needed
-        relarray rar = new_relarray();
-        aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
-        aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
+        rar = new_relarray();
+        ent_orig->tree_root = aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
+        if(ent_orig != ent_dest)
+            ent_dest->tree_root = aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
     }
+    else
+        rar = link->rar;
 
     //Get relation info
     relation* rel = create_relation(relations, id_rel);
@@ -39,7 +43,6 @@ void addrel(direct_ht ht, rel_db relations,
     int direction = strcmp(id_orig, id_dest);
 
     //Set active relation arraylist to proper value
-    relarray rar = link->rar;
     if(relarray_add(rar, rel->index, direction))
     {
         increase_relation_count(relations, rel->index, id_dest, h_dest);
@@ -67,9 +70,7 @@ void dellinks(const direct_ht ht, const rel_db relations, const aa_node tree, co
         byte b = ar[index];
         if(b & mask)
         {
-            int newval = hh_decrease(&(relations->array[index]->hheap), ent2->id_ent, h_ent2);
-            if(newval + 1 == relations->array[index]->topval) // If item was in top list
-                relations->array[index]->topval = TOPVAL_INVALID;
+            decrease_relations_count(relations, index, ent2->id_ent, h_ent2);
         }
     }
 
@@ -78,7 +79,7 @@ void dellinks(const direct_ht ht, const rel_db relations, const aa_node tree, co
     free(tree);
 }
 
-void delent(direct_ht ht, rel_db relations, char* id_ent)
+void delent(direct_ht ht, rel_db relations, const char* id_ent)
 {
     //Go to the entry in the entity hashtable
     uint h_ent = hash(id_ent);
@@ -99,7 +100,7 @@ void delent(direct_ht ht, rel_db relations, char* id_ent)
     ht_delete(ht, id_ent, h_ent);
 }
 
-void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* id_rel)
+void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_dest, const char* id_rel)
 {
     //Calculate hashes and verify existence
     uint h_orig = hash(id_orig),
@@ -132,7 +133,8 @@ void delrel(direct_ht ht, rel_db relations, char* id_orig, char* id_dest, char* 
     if(rar->count == 0) //Free the link
     {
         aa_delete(ent_orig->tree_root, id_dest);
-        aa_delete(ent_dest->tree_root, id_orig);
+        if(ent_orig != ent_dest)
+            aa_delete(ent_dest->tree_root, id_orig);
 
         relarray_free(rar);
     }

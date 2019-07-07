@@ -12,7 +12,7 @@ const int primes[] = {
 #define LOADFAC 0.74f
 #define DEFAULT_DIRECT_HT_SIZE 3
 
-uint hash(char* word)
+uint hash(const char* word)
 {
     uint h = 5381;
     for(int i = 0; word[i]; i++)
@@ -25,7 +25,7 @@ uint hash(char* word)
 typedef struct bucket //20 bytes each
 {
     uint hash;
-    char* key;
+    const char* key;
     void* value;
 } bucket;
 
@@ -76,7 +76,7 @@ direct_ht new_direct_ht(int min_size)
     return ht;
 }
 
-void ht_put(direct_ht ht, char* key, void* value, uint hash)
+void ht_put(direct_ht ht, const char* key, void* value, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -114,7 +114,7 @@ void resize_hashtable(direct_ht ht, int size)
     *ht = new_ht;
 }
 
-void* ht_search(direct_ht ht, char* key, uint hash)
+void* ht_search(direct_ht ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -135,7 +135,7 @@ void* ht_search(direct_ht ht, char* key, uint hash)
     }
 }
 
-char* ht_search_keyptr(direct_ht ht, char* key, uint hash)
+const char* ht_search_keyptr(direct_ht ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -156,7 +156,7 @@ char* ht_search_keyptr(direct_ht ht, char* key, uint hash)
     }
 }
 
-void ht_insert(direct_ht ht, char* key, void* value, uint hash)
+void ht_insert(direct_ht ht, const char* key, void* value, uint hash)
 {
     if(ht_search(ht, key, hash) != NULL) return;
 
@@ -166,7 +166,7 @@ void ht_insert(direct_ht ht, char* key, void* value, uint hash)
     ht_put(ht, key, value, hash);
 }
 
-void ht_delete(direct_ht ht, char* key, uint hash)
+void ht_delete(direct_ht ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -199,12 +199,6 @@ void ht_delete(direct_ht ht, char* key, uint hash)
 
 void ht_free(direct_ht ht)
 {
-    if(ht->count > 0)
-        for(int i = 0; i < ht->size; i++)
-        {
-            if(ht->buckets[i].key != NULL)
-                free(ht->buckets[i].key);
-        }
     free(ht->buckets);
     free(ht);
 }

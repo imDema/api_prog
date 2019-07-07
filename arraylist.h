@@ -67,10 +67,10 @@ typedef struct arraylist
 {
     int size;
     int count;
-    void** array;
+    const void** array;
 } arraylist;
 
-void arraylist_insert(arraylist* arl, void* value)
+void arraylist_insert(arraylist* arl, const void* value)
 {
     if(arl->size == 0)
     {

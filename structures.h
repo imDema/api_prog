@@ -3,19 +3,11 @@
 #define DEFAULT_HARR_SIZE 4
 #define TOPVAL_INVALID -1
 
-//TODO IMPORTANT, duplicate strings before hashtable insertion, ht_insert no longer strndups
-
 /////////NEW
-
-entity new_entity(char* id_ent)
-{
-    entity ent = calloc(1, sizeof(struct _entity));
-    ent->id_ent = strndup(id_ent, MAXLEN);
-}
 
 typedef struct heap_item
 {
-    char* id_ent;
+    const char* id_ent;
     int count;
     int hashpos;
 } heap_item;
@@ -35,7 +27,7 @@ typedef struct hashheap
 
 struct _aa_node
 {
-    char* key;
+    const char* key;
     relarray rar;
 
     int level;
@@ -50,6 +42,13 @@ struct _entity
     aa_node tree_root;
 };
 typedef struct _entity* entity;
+
+entity new_entity(const char* id_ent)
+{
+    entity ent = calloc(1, sizeof(struct _entity));
+    ent->id_ent = strndup(id_ent, MAXLEN);
+    return ent;
+}
 
 aa_node skew(aa_node node)
 {
@@ -81,7 +80,7 @@ aa_node split(aa_node node)
     else return node;
 }
 
-aa_node aa_insert(aa_node tree, char* key, relarray value)
+aa_node aa_insert(aa_node tree, const char* key, relarray value)
 {
     if(tree == NULL)
     {
@@ -131,7 +130,7 @@ void aa_decrease_level(aa_node tree)
     }
 }
 
-aa_node aa_delete(aa_node tree, char* key)
+aa_node aa_delete(aa_node tree, const char* key)
 {
     //Search
     if(tree == NULL)
@@ -153,7 +152,7 @@ aa_node aa_delete(aa_node tree, char* key)
         {
             aa_node succ = aa_succ(tree);
             struct _aa_node s_val = *succ;
-            tree->right = aa_delete(succ->key, tree->right);
+            tree->right = aa_delete(tree->right, succ->key);
             tree->key = s_val.key;
             tree->rar = s_val.rar;
         }
@@ -161,7 +160,7 @@ aa_node aa_delete(aa_node tree, char* key)
         {
             aa_node pred = aa_pred(tree);
             struct _aa_node p_val = *pred;
-            tree->left = aa_delete(pred->key, tree->left);
+            tree->left = aa_delete(tree->left, pred->key);
             tree->key = p_val.key;
             tree->rar = p_val.rar;
         }
@@ -177,7 +176,7 @@ aa_node aa_delete(aa_node tree, char* key)
     return tree;
 }
 
-aa_node aa_search(aa_node tree, char* key)
+aa_node aa_search(aa_node tree, const char* key)
 {
     if(tree == NULL)
         return NULL;
@@ -213,7 +212,7 @@ void heap_swap(heap* binheap, int a, int b)
 }
 
 //Returns new value
-int hh_increase(hashheap* hh, char* id_ent, uint hash)
+int hh_increase(hashheap* hh, const char* id_ent, uint hash)
 {
     if(hh->ht == NULL)
         hh->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
@@ -277,7 +276,7 @@ void max_heapify(heap* binheap, int pos)
 }
 
 //Returns old value
-int hh_delete(hashheap* hh, char* id_ent, uint hash)
+int hh_delete(hashheap* hh, const char* id_ent, uint hash)
 {
     if(hh->ht == NULL) return 0;
     heap_item* item = ht_search(hh->ht, id_ent, hash);
@@ -301,10 +300,11 @@ int hh_delete(hashheap* hh, char* id_ent, uint hash)
 }
 
 //Returns new value
-int hh_decrease(hashheap* hh, char* id_ent, uint hash)
+int hh_decrease(hashheap* hh, const char* id_ent, uint hash)
 {
     heap_item* item = ht_search(hh->ht, id_ent, hash);
-    if(item == NULL) fputs("ERROR, trying to decrease not existing item in heap", stderr);
+    if(item == NULL)
+        fputs("ERROR, trying to decrease not existing item in heap", stderr);
     if(item->count == 1)
         hh_delete(hh, id_ent, hash);
     else
@@ -331,27 +331,6 @@ void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
     }
 }
 
-void decrease_relations_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
-{
-    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
-    if (newval + 1 == relations->array[index]->topval)
-        relations->array[index]->topval = TOPVAL_INVALID;
-}
-
-void increase_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
-{
-    int newval = hh_increase(&(relations->array[index]->hheap), id_ent, h_ent);
-    if(newval >= relations->array[index]->topval) // If item was in top list or should enter it
-        relations->array[index]->topval = TOPVAL_INVALID;
-}
-
-void delete_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
-{
-    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
-    if(newval + 1 == relations->array[index]->topval) // If item was in top list
-        relations->array[index]->topval = TOPVAL_INVALID;
-}
-
 struct _relation
 {
     struct _relation* next;
@@ -373,7 +352,7 @@ struct _rel_db
 };
 typedef struct _rel_db* rel_db;
 
-relation* create_relation(rel_db relations, char* id_rel)
+relation* create_relation(rel_db relations, const char* id_rel)
 {
     //Check relation list in rel_ht
     uint h = hash(id_rel);
@@ -419,6 +398,27 @@ relation* create_relation(rel_db relations, char* id_rel)
     return rel;
 }
 
+void decrease_relations_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
+    if (newval + 1 == relations->array[index]->topval)
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
+
+void increase_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_increase(&(relations->array[index]->hheap), id_ent, h_ent);
+    if(newval >= relations->array[index]->topval) // If item was in top list or should enter it
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
+
+void delete_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+{
+    int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
+    if(newval + 1 == relations->array[index]->topval) // If item was in top list
+        relations->array[index]->topval = TOPVAL_INVALID;
+}
+
 rel_db new_rel_db()
 {
     rel_db relations = malloc(sizeof(struct _rel_db));
@@ -449,9 +449,7 @@ void rel_db_free(rel_db relations)
     free(relations);
 }
 
-//TODO check if all freeing methods are correct, attention to hashtable key allocation which has now changed
-
-void free_prev_relrrays(aa_node tree, char* free_delimiter)
+void free_prev_relrrays(aa_node tree, const char* free_delimiter)
 {
     if(tree == NULL)
         return;
@@ -473,10 +471,10 @@ void free_entities(direct_ht ht)
         if(bkt.hash == 0)
             continue;
 
-        aa_node tree = bkt.value;
-        free_prev_relrrays(tree, bkt.key);
-
-        free(bkt.key);
+        entity ent = bkt.value;
+        free_prev_relrrays(ent->tree_root, bkt.key);
+        free(ent->id_ent);
+        free(ent);
     }
     free(ht->buckets);
     free(ht);
