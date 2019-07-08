@@ -6,8 +6,9 @@ void addent(direct_ht ht, const char* id_ent)
     //Check if duplicate
     if(ht_search(ht,id_ent, h) != NULL)
         return;
+    //Allocate a new entity and duplicate the string
     entity ent = new_entity(id_ent);
-    //Create new and insert in ht
+
     ht_insert(ht, ent->id_ent, ent, h);
 }
 
@@ -22,22 +23,23 @@ void addrel(direct_ht ht, rel_db relations,
     if(ent_orig == NULL || ent_dest == NULL)
         return;
 
-    //Get the relation array for the link
+    //Find the link to get to the relarray
     aa_node link = aa_search(ent_orig->tree_root, id_dest);
     relarray rar;
 
-    if(link == NULL)
+    if(link == NULL) //If the link didn't exist create a new one
     {
-        //Initialize it if needed
+        //Create a new relarray and place it in both the entities trees
         rar = new_relarray();
         ent_orig->tree_root = aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
+        //Check if the relation is reflessive, if not don't add it twice
         if(ent_orig != ent_dest)
             ent_dest->tree_root = aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
     }
-    else
+    else //If the link existed retrieve relation array
         rar = link->rar;
 
-    //Get relation info
+    //Get relation item (create it if it doesn't exist)
     relation* rel = create_relation(relations, id_rel);
 
     int direction = strcmp(id_orig, id_dest);
@@ -45,39 +47,55 @@ void addrel(direct_ht ht, rel_db relations,
     //Set active relation arraylist to proper value
     if(relarray_add(rar, rel->index, direction))
     {
+        //If the relation didn't exist increase the count in the relation heap
         increase_relation_count(relations, rel->index, ent_dest->id_ent, h_dest);
     }
 }
 
-void dellinks(const direct_ht ht, const rel_db relations, aa_node tree, const char* id_ent)
+void dellinks(direct_ht ht, rel_db relations, aa_node tree, const char* id_ent)
 {
-    if(tree == NULL)
+    //Recursion stop
+    if(tree->left != NULL)
+        dellinks(ht, relations, tree->left, id_ent);
+    if(tree->right != NULL)
+        dellinks(ht, relations, tree->right, id_ent);
+
+    int order = strcmp(id_ent, tree->key);
+    if(order == 0) //If reflessive node
+    {
+        relarray_free(tree->rar);
+        free(tree);
         return;
-    
-    dellinks(ht, relations, tree->left, id_ent);
-    dellinks(ht, relations, tree->right, id_ent);
+    }
 
+    //Locate the linked entity
     uint h_ent2 = hash(tree->key);
-
     entity ent2 = ht_search(ht, tree->key, h_ent2);
+    if(ent2 == NULL)
+        fputs("!!!\n", stderr);
+
+    //Iterate over all relation indexes and remove all active relation
+    
+    byte* ar = tree->rar->array;
+    byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
 
     int m = tree->rar->size < relations->count ? tree->rar->size : relations->count;
-    byte* ar = tree->rar->array;
-    int order = strcmp(id_ent, ent2->id_ent);
-    byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
     for(int index = 0; index < m; index++)
     {
         byte b = ar[index];
         if(b & mask)
         {
+            //If an active relation on the link is entering the linked node decrease the counts
             decrease_relations_count(relations, index, ent2->id_ent, h_ent2);
         }
     }
 
+    //free the relarray
     relarray_free(tree->rar);
+    free(tree);
+
+    //Remove the link from the second entity tree
     ent2->tree_root = aa_delete(ent2->tree_root, id_ent);
-    if(order != 0)
-        free(tree);
 }
 
 void delent(direct_ht ht, rel_db relations, const char* id_ent)
@@ -88,13 +106,17 @@ void delent(direct_ht ht, rel_db relations, const char* id_ent)
 
     if(ent == NULL) return;
 
-    //Update all outbound links relation counts and delete the links
-    dellinks(ht, relations, ent->tree_root, ent->id_ent);
+    //Delete all links updating the heap in the meantime
+    if(ent->tree_root != NULL)
+        dellinks(ht, relations, ent->tree_root, ent->id_ent);
 
+    //Update all the relation heaps for the entity deletion
     for(int index = 0, m = relations->count; index < m; index++)
-        delete_relation_count(relations, index, id_ent, h_ent); 
+        delete_relation_count(relations, index, id_ent, h_ent);
 
+    //Delete the entity
     ht_delete(ht, id_ent, h_ent);
+    //Free the resources
     free(ent->id_ent);
     free(ent);
 }
@@ -112,26 +134,27 @@ void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_
 
     //Search link
     aa_node link = aa_search(ent_orig->tree_root, id_dest);
-
     if(link == NULL) return;
 
+    //Get the relarray
     relarray rar = link->rar;
-    
-    //Skip if it does not exist
     if(!rar) return;
 
-    //Update arraylist entry if needed
+    //Find the relation
     relation* rel = ht_search(relations->ht, id_rel, hash(id_rel));
     if(!rel) return;
 
     int direction = strcmp(id_orig, id_dest);
-    if(relarray_remove(rar, rel->index, direction)) //If the relation existed remove it and update counts
+    if(relarray_remove(rar, rel->index, direction))
     {
+        //If the relation existed decrease the entry in the heap
         decrease_relations_count(relations, rel->index, id_dest, h_dest);
     }
-    if(rar->count == 0) //Free the link
+    if(rar->count == 0) //If there are no more active relations on the link delete it
     {
+        //Delete the link from the origin
         ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
+        //If the relation is not reflessive delete the link from the destination
         if(ent_orig != ent_dest)
             ent_dest->tree_root = aa_delete(ent_dest->tree_root, id_orig);
 
@@ -156,13 +179,16 @@ void rebuild_top(relation* rel)
 
 void report(rel_db relations)
 {
+    //Memory buffer
     char output[1024];
     output[0] = '\0';
 
     int first = 1;
 
+    //Scroll through the ordered list
     for(relation* curr = relations->list; curr != NULL; curr = curr->next)
     {
+        //Only print if there are relations
         if(curr->hheap.binheap.count > 0)
         {
             if(curr->topval <=  0)

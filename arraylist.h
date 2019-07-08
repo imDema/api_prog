@@ -1,4 +1,4 @@
-#define ARRAYLIST_DEFAULTSIZE 1
+#define ARRAYLIST_DEFAULTSIZE sizeof(void*) / sizeof(byte)
 #define FROM_FIRST 0x1
 #define FROM_SECOND 0x2
 

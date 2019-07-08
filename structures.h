@@ -81,7 +81,7 @@ aa_node split(aa_node node)
     else return node;
 }
 
-aa_node aa_insert(aa_node tree, const char* key, relarray value)
+aa_node aa_insert(aa_node tree, const char* key, const relarray value)
 {
     if(tree == NULL)
     {
@@ -476,7 +476,7 @@ void free_entities(direct_ht ht)
             continue;
 
         entity ent = bkt.value;
-        free_prev_relrrays(ent->tree_root, bkt.key);
+        free_prev_relrrays(ent->tree_root, ent->id_ent);
         free(ent->id_ent);
         free(ent);
     }
