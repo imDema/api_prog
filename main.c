@@ -19,18 +19,11 @@ int main(int argc, char* argv[])
     direct_ht ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     FILE* inptr = stdin;
-    inptr = fopen("tests/100k.in","r"); //FOR DEBUGGING
-
-    //int i = 0;
+    //inptr = fopen("tests/100k.in","r"); //FOR DEBUGGING
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
     {
-        //printf("%d\n", i++); // DEGUGGING ONLY
-        //fputs(line, stdout); //DEBUGGING ONLY
-        //if(i++ == 526)//strstr(line, "Joseph_Carey"))
-            //line[0] = line[0];
-
         char* opcode = strtok(line, " \"\n");
         
         if(!strcmp(opcode, "addent")) //ADDENT
@@ -61,12 +54,8 @@ int main(int argc, char* argv[])
         {
             report(relations);
         }
-        else if(!strcmp(opcode, "debug")) //DEBUG
-        {
-            line[0] = line[0];
-        }
         else
-            fprintf(stderr, "Unrecognized command!\n");
+            fputs(stderr, "Unrecognized command!\n");
     }
 
     if(inptr != stdin) fclose(inptr); //FOR DEBUGGING

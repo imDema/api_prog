@@ -1,10 +1,8 @@
+typedef unsigned char byte;
 #define ARRAYLIST_DEFAULTSIZE sizeof(void*) / sizeof(byte)
 #define FROM_FIRST 0x1
 #define FROM_SECOND 0x2
 
-const int wsize = 8 * sizeof(uint);
-
-typedef unsigned char byte;
 struct _relarray
 {
     byte* array;
