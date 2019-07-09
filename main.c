@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
             report(relations);
         }
         else
-            fputs(stderr, "Unrecognized command!\n");
+            fputs("Unrecognized command!\n", stderr);
     }
 
     if(inptr != stdin) fclose(inptr); //FOR DEBUGGING
