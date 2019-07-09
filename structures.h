@@ -469,14 +469,23 @@ void free_prev_relrrays(aa_node tree, const char* free_delimiter)
 
 void free_entities(direct_ht ht)
 {
+    int pass2_index = 0;
+    bucket* buckets = ht->buckets;
     for(int i = 0; i < ht->size; i++)
     {
-        bucket bkt = ht->buckets[i];
+        bucket bkt = buckets[i];
         if(bkt.hash == 0)
             continue;
 
         entity ent = bkt.value;
         free_prev_relrrays(ent->tree_root, ent->id_ent);
+        //Group buckets at the beginning of the array for a faster 2nd pass
+        buckets[pass2_index++] = buckets[i];
+    }
+
+    for(int i = 0; i < pass2_index; i++)
+    {
+        entity ent = buckets[i].value;
         free(ent->id_ent);
         free(ent);
     }

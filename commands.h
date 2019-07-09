@@ -60,8 +60,7 @@ void dellinks(direct_ht ht, rel_db relations, aa_node tree, const char* id_ent)
     if(tree->right != NULL)
         dellinks(ht, relations, tree->right, id_ent);
 
-    int order = strcmp(id_ent, tree->key);
-    if(order == 0) //If reflessive node
+    if(tree->key == id_ent) //If reflessive node
     {
         relarray_free(tree->rar);
         free(tree);
@@ -75,6 +74,7 @@ void dellinks(direct_ht ht, rel_db relations, aa_node tree, const char* id_ent)
         fputs("!!!\n", stderr);
 
     //Iterate over all relation indexes and remove all active relation
+    int order = strcmp(id_ent, tree->key);
     
     byte* ar = tree->rar->array;
     byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
