@@ -164,8 +164,6 @@ void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_
 
 void fast_int_format(char* string, int integer)
 {
-    if(integer > 10)
-        fputc('a',stdout);
     char formatted[10]; //MAX_INT ha 10 cifre
     int s = 0;
     for(int val = integer; val > 0; val /= 10)
