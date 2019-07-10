@@ -1,4 +1,3 @@
-#define MAXLEN 128
 #define DEFAULT_REL_DB_ARR_SIZE 4
 #define DEFAULT_HARR_SIZE 4
 #define TOPVAL_INVALID -1
@@ -21,7 +20,7 @@ typedef struct heap
 
 typedef struct hashheap
 {
-    direct_ht ht;
+    direct_ht* ht;
     heap binheap;
 } hashheap;
 
@@ -39,7 +38,7 @@ typedef struct _aa_node* aa_node;
 struct _entity
 {
     char* id_ent;
-    aa_node tree_root;
+    direct_ht* ht;
 };
 typedef struct _entity* entity;
 
@@ -47,7 +46,7 @@ entity new_entity(const char* id_ent)
 {
     entity ent = malloc(sizeof(struct _entity));
     ent->id_ent = strndup(id_ent, MAXLEN);
-    ent->tree_root = NULL;
+    ent->ht = NULL;
     return ent;
 }
 
@@ -350,7 +349,7 @@ struct _rel_db
 {
     relation* list;
     relation** array;
-    direct_ht ht;
+    direct_ht* ht;
     int size;
     int count;
 };
@@ -453,32 +452,38 @@ void rel_db_free(rel_db relations)
     free(relations);
 }
 
-void free_prev_relrrays(aa_node tree, const char* free_delimiter)
+void free_prev_relrrays(direct_ht* ht, const char* free_delimiter)
 {
-    if(tree == NULL)
-        return;
-    
-    free_prev_relrrays(tree->left, free_delimiter);
-    free_prev_relrrays(tree->right, free_delimiter);
-
-    if(strcmp(tree->key, free_delimiter) <= 0)
-        relarray_free(tree->rar);
-
-    free(tree);
-}
-
-void free_entities(direct_ht ht)
-{
-    int pass2_index = 0;
     bucket* buckets = ht->buckets;
-    for(int i = 0; i < ht->size; i++)
+    for(int i = 0, cnt = ht->count; cnt > 0; i++)
     {
         bucket bkt = buckets[i];
         if(bkt.hash == 0)
             continue;
 
+        cnt--;
+        if(strcmp(bkt.key, free_delimiter) <= 0)
+            relarray_free(bkt.value);
+    }
+}
+
+void free_entities(direct_ht* ht)
+{
+    bucket* buckets = ht->buckets;
+    int pass2_index = 0;
+    for(int i = 0, cnt = ht->count; cnt > 0; i++)
+    {
+        bucket bkt = buckets[i];
+        if(bkt.hash == 0)
+            continue;
+        
+        cnt--;
         entity ent = bkt.value;
-        free_prev_relrrays(ent->tree_root, ent->id_ent);
+        if(ent->ht != NULL)
+        {
+            free_prev_relrrays(ent->ht, ent->id_ent);
+        }
+        ht_free(ent->ht);
         //Group buckets at the beginning of the array for a faster 2nd pass
         buckets[pass2_index++] = buckets[i];
     }

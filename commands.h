@@ -1,4 +1,4 @@
-void addent(direct_ht ht, const char* id_ent)
+void addent(direct_ht* ht, const char* id_ent)
 {
     //Calculate hash
     uint h = hash(id_ent);
@@ -12,7 +12,7 @@ void addent(direct_ht ht, const char* id_ent)
     ht_insert(ht, ent->id_ent, ent, h);
 }
 
-void addrel(direct_ht ht, rel_db relations,
+void addrel(direct_ht* ht, rel_db relations,
                 const char* id_orig, const char* id_dest, const char* id_rel)
 {
     //Check if both entities exist
@@ -24,20 +24,27 @@ void addrel(direct_ht ht, rel_db relations,
         return;
 
     //Find the link to get to the relarray
-    aa_node link = aa_search(ent_orig->tree_root, id_dest);
-    relarray rar;
+    //*aa_node link = aa_search(ent_orig->tree_root, id_dest);
+    if(ent_orig->ht == NULL)
+        ent_orig->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
+    if(ent_dest->ht == NULL)
+        ent_dest->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
-    if(link == NULL) //If the link didn't exist create a new one
+    relarray rar = ht_search(ent_orig->ht, ent_dest->id_ent, h_dest);
+
+    if(rar == NULL) //If the link didn't exist create a new one
     {
         //Create a new relarray and place it in both the entities trees
         rar = new_relarray();
-        ent_orig->tree_root = aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
+        //*ent_orig->tree_root = aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
+        ht_insert(ent_orig->ht, ent_dest->id_ent, rar, h_dest);
         //Check if the relation is reflessive, if not don't add it twice
         if(ent_orig != ent_dest)
-            ent_dest->tree_root = aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
+            ht_insert(ent_dest->ht, ent_orig->id_ent, rar, h_orig);
+            //*ent_dest->tree_root = aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
     }
-    else //If the link existed retrieve relation array
-        rar = link->rar;
+    //*else //If the link existed retrieve relation array
+    //*    rar = link->rar;
 
     //Get relation item (create it if it doesn't exist)
     relation* rel = create_relation(relations, id_rel);
@@ -52,53 +59,54 @@ void addrel(direct_ht ht, rel_db relations,
     }
 }
 
-void dellinks(direct_ht ht, rel_db relations, aa_node tree, const char* id_ent)
+void decrease_all_relations(rel_db relations, relarray rar, int order, const char* id_ent2, uint h_ent2)
 {
-    //Recursion stop
-    if(tree->left != NULL)
-        dellinks(ht, relations, tree->left, id_ent);
-    if(tree->right != NULL)
-        dellinks(ht, relations, tree->right, id_ent);
-
-    if(tree->key == id_ent) //If reflessive node
-    {
-        relarray_free(tree->rar);
-        free(tree);
-        return;
-    }
-
-    //Locate the linked entity
-    uint h_ent2 = hash(tree->key);
-    entity ent2 = ht_search(ht, tree->key, h_ent2);
-    if(ent2 == NULL)
-        fputs("!!!\n", stderr);
-
-    //Iterate over all relation indexes and remove all active relation
-    int order = strcmp(id_ent, tree->key);
-    
-    byte* ar = tree->rar->array;
+    byte* ar = rar->array;
     byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
 
-    int m = tree->rar->size < relations->count ? tree->rar->size : relations->count;
+    int m = rar->size < relations->count ? rar->size : relations->count;
     for(int index = 0; index < m; index++)
     {
         byte b = ar[index];
         if(b & mask)
         {
             //If an active relation on the link is entering the linked node decrease the counts
-            decrease_relations_count(relations, index, ent2->id_ent, h_ent2);
+            decrease_relations_count(relations, index, id_ent2, h_ent2);
         }
     }
-
-    //free the relarray
-    relarray_free(tree->rar);
-    free(tree);
-
-    //Remove the link from the second entity tree
-    ent2->tree_root = aa_delete(ent2->tree_root, id_ent);
 }
 
-void delent(direct_ht ht, rel_db relations, const char* id_ent)
+void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_ent)
+{
+    //Scroll through all the elements
+    direct_ht entity_ht = *ent->ht;
+    for(int i = 0, cnt = entity_ht.count; cnt > 0; i++)
+    {
+        bucket bkt = entity_ht.buckets[i];
+        if(bkt.hash == 0)
+            continue;
+        
+        cnt--;
+        int order = strcmp(ent->id_ent, bkt.key);
+
+        if(order == 0) //Same id => Reflessive relations
+        {
+            relarray_free((relarray)bkt.value);
+            continue;
+        }
+
+        const uint h_ent2 = hash(bkt.key);
+        entity ent2 = ht_search(ht, bkt.key, h_ent2);
+
+        relarray rar = (relarray)bkt.value;
+
+        decrease_all_relations(relations, rar, order, ent2->id_ent, h_ent2);
+        ht_delete(ent2->ht, ent->id_ent, h_ent);
+        relarray_free(rar);
+    }
+}
+
+void delent(direct_ht* ht, rel_db relations, const char* id_ent)
 {
     //Go to the entry in the entity hashtable
     uint h_ent = hash(id_ent);
@@ -106,38 +114,39 @@ void delent(direct_ht ht, rel_db relations, const char* id_ent)
 
     if(ent == NULL) return;
 
-    //Delete all links updating the heap in the meantime
-    if(ent->tree_root != NULL)
-        dellinks(ht, relations, ent->tree_root, ent->id_ent);
-
     //Update all the relation heaps for the entity deletion
     for(int index = 0, m = relations->count; index < m; index++)
         delete_relation_count(relations, index, id_ent, h_ent);
 
+    //Delete all links updating the heap in the meantime
+    if(ent->ht != NULL)
+        dellinks(ht, relations, ent, h_ent);
+
     //Delete the entity
-    ht_delete(ht, id_ent, h_ent);
+    ht_delete(ht, ent->id_ent, h_ent);
     //Free the resources
     free(ent->id_ent);
     free(ent);
 }
 
-void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_dest, const char* id_rel)
+void delrel(direct_ht* ht, rel_db relations, const char* id_orig, const char* id_dest, const char* id_rel)
 {
     //Calculate hashes and verify existence
     uint h_orig = hash(id_orig),
         h_dest = hash(id_dest);
     entity ent_orig = ht_search(ht, id_orig, h_orig),
         ent_dest = ht_search(ht, id_dest, h_dest);
-    if(ent_orig == NULL || ent_dest == NULL)
+    if(ent_orig == NULL || ent_dest == NULL || ent_orig->ht == NULL)
         return;
     
 
     //Search link
-    aa_node link = aa_search(ent_orig->tree_root, id_dest);
-    if(link == NULL) return;
+    //*aa_node link = aa_search(ent_orig->tree_root, id_dest);
+    //*if(link == NULL) return;
+    relarray rar = ht_search(ent_orig->ht, ent_dest->id_ent, h_dest);
 
     //Get the relarray
-    relarray rar = link->rar;
+    //*relarray rar = link->rar;
     if(!rar) return;
 
     //Find the relation
@@ -153,10 +162,12 @@ void delrel(direct_ht ht, rel_db relations, const char* id_orig, const char* id_
     if(rar->count == 0) //If there are no more active relations on the link delete it
     {
         //Delete the link from the origin
-        ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
+        //*ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
+        ht_delete(ent_orig->ht, ent_dest->id_ent, h_dest);
         //If the relation is not reflessive delete the link from the destination
         if(ent_orig != ent_dest)
-            ent_dest->tree_root = aa_delete(ent_dest->tree_root, id_orig);
+            ht_delete(ent_dest->ht, ent_orig->id_ent, h_orig);
+            //*ent_dest->tree_root = aa_delete(ent_dest->tree_root, id_orig);
 
         relarray_free(rar);
     }

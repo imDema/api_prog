@@ -1,4 +1,4 @@
-#define MAXLEN 128
+#define MAXLEN 1024
 typedef unsigned int uint;
 
 #include <stdlib.h>
@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     char line[MAXLEN + 1];
 
     rel_db relations = new_rel_db();
-    direct_ht ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
+    direct_ht* ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     FILE* inptr = stdin;
     //inptr = fopen("tests/100k.in","r"); //FOR DEBUGGING

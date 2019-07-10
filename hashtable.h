@@ -37,14 +37,14 @@ struct _direct_ht //20 bytes each
     int occupied;
     struct bucket* buckets;     //80 for default size
 };
-typedef struct _direct_ht* direct_ht;
+typedef struct _direct_ht direct_ht;
 
 bucket* new_buckets(int size)
 {
     return calloc(size, sizeof(bucket));
 }
 
-int get_prime_size(int approx_size)
+int get_prime_size(const int approx_size)
 {
     int size = __INT_MAX__;
     for(int s = 0; s < primes_size; s++)
@@ -69,14 +69,14 @@ struct _direct_ht create_direct_ht(int min_size)
     return new_ht;
 }
 
-direct_ht new_direct_ht(int min_size)
+direct_ht* new_direct_ht(int min_size)
 {
-    direct_ht ht = malloc(sizeof(struct _direct_ht));
+    direct_ht* ht = malloc(sizeof(struct _direct_ht));
     *ht = create_direct_ht(min_size);
     return ht;
 }
 
-void ht_put(direct_ht ht, const char* key, void* value, uint hash)
+void ht_put(direct_ht* ht, const char* key, void* value, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -97,7 +97,7 @@ void ht_put(direct_ht ht, const char* key, void* value, uint hash)
     ht->count++;
 }
 
-void resize_hashtable(direct_ht ht, int size)
+void resize_hashtable(direct_ht* ht, int size)
 {
     struct _direct_ht new_ht = create_direct_ht(size);
 
@@ -114,7 +114,7 @@ void resize_hashtable(direct_ht ht, int size)
     *ht = new_ht;
 }
 
-void* ht_search(direct_ht ht, const char* key, uint hash)
+void* ht_search(const direct_ht* ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -135,7 +135,7 @@ void* ht_search(direct_ht ht, const char* key, uint hash)
     }
 }
 
-const char* ht_search_keyptr(direct_ht ht, const char* key, uint hash)
+const char* ht_search_keyptr(const direct_ht* ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -156,17 +156,21 @@ const char* ht_search_keyptr(direct_ht ht, const char* key, uint hash)
     }
 }
 
-void ht_insert(direct_ht ht, const char* key, void* value, uint hash)
+void ht_insert(direct_ht* ht, const char* key, void* value, uint hash)
 {
     if(ht_search(ht, key, hash) != NULL) return;
 
-    if(ht->occupied >= ht->loadsize)
-        resize_hashtable(ht, ht->size * 2);
-    
+    if(ht->occupied >= ht->loadsize )
+    {
+        if(ht->count > ht->occupied / 3)
+            resize_hashtable(ht, ht->size * 2);
+        else
+            resize_hashtable(ht, ht->size);
+    }
     ht_put(ht, key, value, hash);
 }
 
-void ht_delete(direct_ht ht, const char* key, uint hash)
+void ht_delete(direct_ht* ht, const char* key, uint hash)
 {
     //Starting index
     int index = hash % ht->size;
@@ -192,8 +196,10 @@ void ht_delete(direct_ht ht, const char* key, uint hash)
     }
 }
 
-void ht_free(direct_ht ht)
+void ht_free(direct_ht* ht)
 {
+    if(ht == NULL)
+        return;
     free(ht->buckets);
     free(ht);
 }
