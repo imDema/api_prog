@@ -204,8 +204,8 @@ void rebuild_top(relation* rel)
 void report(rel_db relations)
 {
     //Memory buffer
-    char output[1024];
-    output[0] = '\0';
+    char intbuf[1024];
+    intbuf[0] = '\0';
 
     int first = 1;
 
@@ -218,26 +218,25 @@ void report(rel_db relations)
             if(curr->topval <=  0)
                 rebuild_top(curr);
 
-            output[0] = '\0';
+            intbuf[0] = '\0';
             if(!first)
-                strcat(output, " ");
+                fputc(' ', stdout);
             first = 0;
-            strcat(output, "\"");
-            strcat(output, curr->id_rel);
-            strcat(output, "\" ");
+            fputc('\"', stdout);
+            fputs(curr->id_rel, stdout);
+            fputs("\" ", stdout);
             for(int j = 0; j < curr->top.count; j++)
             {
-                strcat(output, "\"");
-                strcat(output, curr->top.array[j]);
-                strcat(output, "\" ");
+                fputc('\"', stdout);
+                fputs(curr->top.array[j], stdout);
+                fputs("\" ", stdout);
             }
-            fast_int_format(output + strlen(output), curr->topval);
-            strcat(output, ";");
+            fast_int_format(intbuf, curr->topval);
+            fputc(';', stdout);
             //sprintf(output + strlen(output), "%d;", curr->topval);
-            fputs(output, stdout);
         }
     }
-    if(output[0] == '\0')
+    if(intbuf[0] == '\0')
         fputs("none\n", stdout);
     else
         fputc('\n', stdout);
