@@ -64,7 +64,7 @@ void decrease_all_relations(rel_db relations, relarray rar, int order, const cha
     byte* ar = rar->array;
     byte mask = order <= 0 ? FROM_FIRST : FROM_SECOND;
 
-    int m = rar->size < relations->count ? rar->size : relations->count;
+    int m = rar->size < relations->maxindex ? rar->size : relations->maxindex;
     for(int index = 0; index < m; index++)
     {
         byte b = ar[index];
@@ -115,7 +115,7 @@ void delent(direct_ht* ht, rel_db relations, const char* id_ent)
     if(ent == NULL) return;
 
     //Update all the relation heaps for the entity deletion
-    for(int index = 0, m = relations->count; index < m; index++)
+    for(int index = 0, m = relations->maxindex; index < m; index++)
         delete_relation_count(relations, index, id_ent, h_ent);
 
     //Delete all links updating the heap in the meantime
@@ -150,7 +150,7 @@ void delrel(direct_ht* ht, rel_db relations, const char* id_orig, const char* id
     if(!rar) return;
 
     //Find the relation
-    relation* rel = ht_search(relations->ht, id_rel, hash(id_rel));
+    relation* rel = aa_search(relations->tree, id_rel);
     if(!rel) return;
 
     int direction = strcmp(id_orig, id_dest);
@@ -201,43 +201,49 @@ void rebuild_top(relation* rel)
     qsort(rel->top.array, rel->top.count, sizeof(char*), cmpstr);
 }
 
+void sorted_print(aa_node tree, int* first)
+{
+    if(tree == NULL) return;
+    sorted_print(tree->left, first);
+
+    char intbuf[32];
+
+    relation* rel = tree->content;
+    if(rel->hheap.binheap.count > 0)
+    {
+        if(rel->topval <=  0)
+            rebuild_top(rel);
+
+        intbuf[0] = '\0';
+        if(!*first)
+            fputc(' ', stdout);
+        *first = 0;
+        fputc('\"', stdout);
+        fputs(rel->id_rel, stdout);
+        fputs("\" ", stdout);
+        for(int j = 0; j < rel->top.count; j++)
+        {
+            fputc('\"', stdout);
+            fputs(rel->top.array[j], stdout);
+            fputs("\" ", stdout);
+        }
+        fast_int_format(intbuf, rel->topval);
+        fputs(intbuf, stdout);
+        fputc(';', stdout);
+        //sprintf(output + strlen(output), "%d;", curr->topval);
+    }
+
+    sorted_print(tree->right, first);
+}
+
 void report(rel_db relations)
 {
     //Memory buffer
-    char intbuf[32];
-    intbuf[0] = '\0';
-
     int first = 1;
 
     //Scroll through the ordered list
-    for(relation* curr = relations->list; curr != NULL; curr = curr->next)
-    {
-        //Only print if there are relations
-        if(curr->hheap.binheap.count > 0)
-        {
-            if(curr->topval <=  0)
-                rebuild_top(curr);
-
-            intbuf[0] = '\0';
-            if(!first)
-                fputc(' ', stdout);
-            first = 0;
-            fputc('\"', stdout);
-            fputs(curr->id_rel, stdout);
-            fputs("\" ", stdout);
-            for(int j = 0; j < curr->top.count; j++)
-            {
-                fputc('\"', stdout);
-                fputs(curr->top.array[j], stdout);
-                fputs("\" ", stdout);
-            }
-            fast_int_format(intbuf, curr->topval);
-            fputs(intbuf, stdout);
-            fputc(';', stdout);
-            //sprintf(output + strlen(output), "%d;", curr->topval);
-        }
-    }
-    if(intbuf[0] == '\0')
+    sorted_print(relations->tree, &first);
+    if(first)
         fputs("none\n", stdout);
     else
         fputc('\n', stdout);

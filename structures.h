@@ -27,7 +27,7 @@ typedef struct hashheap
 struct _aa_node
 {
     const char* key;
-    relarray rar;
+    void* content;
 
     int level;
     struct _aa_node* left;
@@ -41,6 +41,73 @@ struct _entity
     direct_ht* ht;
 };
 typedef struct _entity* entity;
+
+typedef struct pq
+{
+    int* array;
+    int size;
+    int count;
+} pq;
+
+void swapint(int* a, int* b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+int parent(int i)
+{
+    return (i-1)/2;
+}
+int left(int i)
+{
+    return 2*i+1;
+}
+int right (int i)
+{
+    return 2*i+2;
+}
+
+void min_heapifypq(pq queue, int pos)
+{
+    int l = left(pos);
+    int r = right(pos);
+    int smallest = pos;
+
+    if (l < queue.count && queue.array[l] < smallest) 
+        smallest = l; 
+    if (r < queue.count && queue.array[r] < smallest) 
+        smallest = r; 
+
+    if (smallest != pos)
+    {
+        swapint(&queue.array[smallest], &queue.array[pos]);
+        min_heapifypq(queue, smallest);
+    }
+}
+
+void pq_push(pq queue, int value)
+{
+    if(queue.size == queue.count)
+    {
+        queue.size *= 2;
+        queue.array = realloc(queue.array, queue.size * sizeof(int));
+    }
+    queue.array[queue.count++] = value;
+    for(int p = queue.count-1; p != 0 && queue.array[p] < queue.array[parent(p)]; p = parent(p))
+        swapint(&queue.array[p], &queue.array[parent(p)]);
+}
+
+int pq_pop(pq queue)
+{
+    if(queue.count == 0)
+        return -1;
+    int v = queue.array[0];
+    swapint(&queue.array[0], &queue.array[--queue.count]);
+    min_heapifypq(queue, 0);
+    return v;
+}
 
 entity new_entity(const char* id_ent)
 {
@@ -80,13 +147,13 @@ aa_node split(aa_node node)
     else return node;
 }
 
-aa_node aa_insert(aa_node tree, const char* key, const relarray value)
+aa_node aa_insert(aa_node tree, const char* key, void* value)
 {
     if(tree == NULL)
     {
         aa_node newnode = malloc(sizeof(struct _aa_node));
         newnode->key = key;
-        newnode->rar = value;
+        newnode->content = value;
         newnode->left = NULL;
         newnode->right = NULL;
         newnode->level = 1;
@@ -157,7 +224,7 @@ aa_node aa_delete(aa_node tree, const char* key)
             struct _aa_node s_val = *succ;
             tree->right = aa_delete(tree->right, succ->key);
             tree->key = s_val.key;
-            tree->rar = s_val.rar;
+            tree->content = s_val.content;
         }
         else
         {
@@ -165,7 +232,7 @@ aa_node aa_delete(aa_node tree, const char* key)
             struct _aa_node p_val = *pred;
             tree->left = aa_delete(tree->left, p_val.key);
             tree->key = p_val.key;
-            tree->rar = p_val.rar;
+            tree->content = p_val.content;
         }
     }
     //Rebalance
@@ -179,7 +246,7 @@ aa_node aa_delete(aa_node tree, const char* key)
     return tree;
 }
 
-aa_node aa_search(aa_node tree, const char* key)
+void* aa_search(aa_node tree, const char* key)
 {
     if(tree == NULL)
         return NULL;
@@ -188,20 +255,7 @@ aa_node aa_search(aa_node tree, const char* key)
     else if(strcmp(key, tree->key) > 0)
         return aa_search(tree->right, key);
     else
-        return tree;
-}
-
-int parent(int i)
-{
-    return (i-1)/2;
-}
-int left(int i)
-{
-    return 2*i+1;
-}
-int right (int i)
-{
-    return 2*i+2;
+        return tree->content;
 }
 
 void heap_swap(heap* binheap, int a, int b)
@@ -336,7 +390,6 @@ void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
 
 struct _relation
 {
-    struct _relation* next;
     char* id_rel;
     int index;
     int topval;
@@ -347,65 +400,68 @@ typedef struct _relation relation;
 
 struct _rel_db
 {
-    relation* list;
     relation** array;
-    direct_ht* ht;
+    aa_node tree;
+    pq index_queue;
     int size;
-    int count;
+    int maxindex;
 };
 typedef struct _rel_db* rel_db;
 
 relation* create_relation(rel_db relations, const char* id_rel)
 {
-    //Check relation list in rel_ht
-    uint h = hash(id_rel);
-
-    relation* rel = ht_search(relations->ht, id_rel, h);
+    relation* rel = aa_search(relations->tree, id_rel);
     
     if(rel != NULL) return rel;
 
     //Create new node
     rel = calloc(1, sizeof(relation));
     rel->id_rel = strndup(id_rel, MAXLEN);
-    rel->index = relations->count;
-
-    //Insert in linked list sorting by id_rel
-    if(relations->list == NULL || strcmp(id_rel, relations->list->id_rel) < 0)
+    int index = pq_pop(relations->index_queue);
+    if(index > 0)
     {
-        rel->next = relations->list;
-        relations->list = rel;
+        rel->index = index;
+        relations->array[index] = rel;
     }
     else
     {
-        relation* curr = relations->list;
-        while(curr->next != NULL && strcmp(id_rel, curr->next->id_rel) > 0)
-            curr = curr->next;
-
-        rel->next = curr->next;
-        curr->next = rel;
+        if(relations->maxindex == relations->size) //Expand if needed
+        {
+            relations->size *= 2;
+            relations->array = realloc(relations->array, relations->size * sizeof(relation*));
+        }
+        rel->index = relations->maxindex++;
+        relations->array[rel->index] = rel;
     }
     
-
-    //Add pointer to direct access array
-    if(relations->count == relations->size) //Expand if needed
-    {
-        relations->size *= 2;
-        relations->array = realloc(relations->array, relations->size * sizeof(relation*));
-    }
-    relations->array[relations->count] = rel;
-    relations->count++; //Increase virtual size
-
-    //Add pointer to hashtable for string lookups
-    ht_insert(relations->ht, rel->id_rel, rel, h);
+    //Insert in linked list sorting by id_rel
+    relations->tree = aa_insert(relations->tree, rel->id_rel, rel);
 
     return rel;
 }
 
-void decrease_relations_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
+void delete_relation(rel_db relations, int index)
+{
+    relation* rel = relations->array[index];
+    relations->array[index] = NULL;
+    relations->tree = aa_delete(relations->tree, rel->id_rel);
+
+    pq_push(relations->index_queue, index);
+    ht_free(rel->hheap.ht);
+    free(rel->hheap.binheap.harr);
+    free(rel->top.array);
+    free(rel->id_rel);
+    free(rel);
+}
+
+void decrease_relations_count(rel_db relations, int index, const char* id_ent, uint h_ent)
 {
     int newval = hh_decrease(&(relations->array[index]->hheap), id_ent, h_ent);
     if (newval + 1 == relations->array[index]->topval)
         relations->array[index]->topval = TOPVAL_INVALID;
+
+    if(newval == 0 && relations->array[index]->hheap.binheap.count == 0)
+        delete_relation(relations, index);
 }
 
 void increase_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
@@ -417,38 +473,62 @@ void increase_relation_count(const rel_db relations, int index, const char* id_e
 
 void delete_relation_count(const rel_db relations, int index, const char* id_ent, uint h_ent)
 {
+    if(relations->array[index] == NULL) return;
     int oldval = hh_delete(&(relations->array[index]->hheap), id_ent, h_ent);
     if(oldval == relations->array[index]->topval) // If item was in top list
         relations->array[index]->topval = TOPVAL_INVALID;
+
+    if(relations->array[index]->hheap.binheap.count == 0)
+        delete_relation(relations, index);
 }
 
 rel_db new_rel_db()
 {
     rel_db relations = malloc(sizeof(struct _rel_db));
-    relations->list = NULL;
+    relations->tree = NULL;
     relations->array = malloc(DEFAULT_REL_DB_ARR_SIZE * sizeof(relation*));
-    relations->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
-    relations->count = 0;
+    relations->index_queue.size = 2;
+    relations->index_queue.array = malloc(sizeof(int) * relations->index_queue.size);
+    relations->index_queue.count = 0;
+    relations->maxindex = 0;
     relations->size  = DEFAULT_REL_DB_ARR_SIZE;
     return relations;
 }
 
+void aa_free(aa_node tree)
+{
+    if(tree == NULL)
+        return;
+    aa_free(tree->left);
+    aa_free(tree->right);
+    free(tree);
+}
+
+
+void free_relations(aa_node tree)
+{
+    if(tree == NULL) return;
+    free_relations(tree->left);
+    free_relations(tree->right);
+    relation* rel = tree->content;
+
+    ht_free(rel->hheap.ht);
+    for(int j = 0, m = rel->hheap.binheap.count; j < m; j++)
+    {
+        free(rel->hheap.binheap.harr[j]);
+    }
+    free(rel->hheap.binheap.harr);
+    free(rel->top.array);
+    free(rel->id_rel);
+    free(rel);
+    free(tree);
+}
 void rel_db_free(rel_db relations)
 {
-    for(int i = 0; i < relations->count; i++)
-    {
-        ht_free(relations->array[i]->hheap.ht);
-        for(int j = 0, m = relations->array[i]->hheap.binheap.count; j < m; j++)
-        {
-            free(relations->array[i]->hheap.binheap.harr[j]);
-        }
-        free(relations->array[i]->hheap.binheap.harr);
-        free(relations->array[i]->top.array);
-        free(relations->array[i]->id_rel);
-        free(relations->array[i]);
-    }
+    free_relations(relations->tree);
+    
     free(relations->array);
-    ht_free(relations->ht);
+    aa_free(relations->tree);
     free(relations);
 }
 
