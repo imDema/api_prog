@@ -204,7 +204,7 @@ void rebuild_top(relation* rel)
 void report(rel_db relations)
 {
     //Memory buffer
-    char intbuf[1024];
+    char intbuf[32];
     intbuf[0] = '\0';
 
     int first = 1;
@@ -232,6 +232,7 @@ void report(rel_db relations)
                 fputs("\" ", stdout);
             }
             fast_int_format(intbuf, curr->topval);
+            fputs(intbuf, stdout);
             fputc(';', stdout);
             //sprintf(output + strlen(output), "%d;", curr->topval);
         }

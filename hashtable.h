@@ -56,7 +56,7 @@ int get_prime_size(const int approx_size)
     return size;
 }
 
-struct _direct_ht create_direct_ht(int min_size)
+direct_ht create_direct_ht(int min_size)
 {
 
     int newsize = get_prime_size(min_size);
@@ -99,7 +99,7 @@ void ht_put(direct_ht* ht, const char* key, void* value, uint hash)
 
 void resize_hashtable(direct_ht* ht, int size)
 {
-    struct _direct_ht new_ht = create_direct_ht(size);
+    direct_ht new_ht = create_direct_ht(size);
 
     for(int i = 0; i < ht->size; i++)
     {
@@ -194,6 +194,11 @@ void ht_delete(direct_ht* ht, const char* key, uint hash)
 
         index = (index + h2) % ht->size;
     }
+    //Decrease if many deleted
+    // if(ht->size > 10 && ht->count < ht->loadsize / 6)
+    // {
+    //     resize_hashtable(ht, ht->size / 2);
+    // }
 }
 
 void ht_free(direct_ht* ht)
