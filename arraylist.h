@@ -20,8 +20,7 @@ int relarray_add(relarray arl, int index, int direction)
         while(index >= arl->size)
             arl->size *= 2;
         arl->array = (byte*)realloc(arl->array, arl->size * sizeof(byte));
-        for(int i = s0; i < arl->size; i++)
-            arl->array[i] = 0;
+        memset(arl->array + s0, 0, arl->size - s0);
     }
     int newcreated = !(arl->array[index] & mask);
     if(newcreated)

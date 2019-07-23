@@ -158,7 +158,7 @@ const char* ht_search_keyptr(const direct_ht* ht, const char* key, uint hash)
 
 void ht_insert(direct_ht* ht, const char* key, void* value, uint hash)
 {
-    if(ht_search(ht, key, hash) != NULL) return;
+    //if(ht_search(ht, key, hash) != NULL)return;
 
     if(ht->occupied >= ht->loadsize )
     {
@@ -194,11 +194,11 @@ void ht_delete(direct_ht* ht, const char* key, uint hash)
 
         index = (index + h2) % ht->size;
     }
-    //Decrease if many deleted
-    // if(ht->size > 10 && ht->count < ht->loadsize / 6)
-    // {
-    //     resize_hashtable(ht, ht->size / 2);
-    // }
+    //Decrease if many deleted //TODO CHECK THIS
+    if(ht->size > 6 && ht->count < ht->loadsize / 5)
+    {
+        resize_hashtable(ht, ht->size / 2);
+    }
 }
 
 void ht_free(direct_ht* ht)
