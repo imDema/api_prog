@@ -418,7 +418,7 @@ relation* create_relation(rel_db relations, const char* id_rel)
     rel = calloc(1, sizeof(relation));
     rel->id_rel = strndup(id_rel, MAXLEN);
     int index = pq_pop(relations->index_queue);
-    if(index > 0)
+    if(index >= 0)
     {
         rel->index = index;
         relations->array[index] = rel;

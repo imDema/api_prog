@@ -164,11 +164,21 @@ void delrel(direct_ht* ht, rel_db relations, const char* id_orig, const char* id
         //Delete the link from the origin
         //*ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
         ht_delete(ent_orig->ht, ent_dest->id_ent, h_dest);
+        if(ent_orig->ht->count == 0)
+        {
+            ht_free(ent_orig->ht);
+            ent_orig->ht = NULL;
+        }
         //If the relation is not reflessive delete the link from the destination
         if(ent_orig != ent_dest)
+        {
             ht_delete(ent_dest->ht, ent_orig->id_ent, h_orig);
-            //*ent_dest->tree_root = aa_delete(ent_dest->tree_root, id_orig);
-
+            if(ent_dest->ht->count == 0)
+            {
+                ht_free(ent_dest->ht);
+                ent_dest->ht = NULL;
+            }
+        }
         relarray_free(rar);
     }
 }
