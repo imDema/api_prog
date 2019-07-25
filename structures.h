@@ -87,25 +87,25 @@ void min_heapifypq(pq queue, int pos)
     }
 }
 
-void pq_push(pq queue, int value)
+void pq_push(pq* queue, int value)
 {
-    if(queue.size == queue.count)
+    if(queue->size == queue->count)
     {
-        queue.size *= 2;
-        queue.array = realloc(queue.array, queue.size * sizeof(int));
+        queue->size *= 2;
+        queue->array = realloc(queue->array, queue->size * sizeof(int));
     }
-    queue.array[queue.count++] = value;
-    for(int p = queue.count-1; p != 0 && queue.array[p] < queue.array[parent(p)]; p = parent(p))
-        swapint(&queue.array[p], &queue.array[parent(p)]);
+    queue->array[queue->count++] = value;
+    for(int p = queue->count-1; p != 0 && queue->array[p] < queue->array[parent(p)]; p = parent(p))
+        swapint(&queue->array[p], &queue->array[parent(p)]);
 }
 
-int pq_pop(pq queue)
+int pq_pop(pq* queue)
 {
-    if(queue.count == 0)
+    if(queue->count == 0)
         return -1;
-    int v = queue.array[0];
-    swapint(&queue.array[0], &queue.array[--queue.count]);
-    min_heapifypq(queue, 0);
+    int v = queue->array[0];
+    swapint(&queue->array[0], &queue->array[--queue->count]);
+    min_heapifypq(*queue, 0);
     return v;
 }
 
@@ -417,7 +417,7 @@ relation* create_relation(rel_db relations, const char* id_rel)
     //Create new node
     rel = calloc(1, sizeof(relation));
     rel->id_rel = strndup(id_rel, MAXLEN);
-    int index = pq_pop(relations->index_queue);
+    int index = pq_pop(&relations->index_queue);
     if(index >= 0)
     {
         rel->index = index;
@@ -446,7 +446,7 @@ void delete_relation(rel_db relations, int index)
     relations->array[index] = NULL;
     relations->tree = aa_delete(relations->tree, rel->id_rel);
 
-    pq_push(relations->index_queue, index);
+    pq_push(&relations->index_queue, index);
     ht_free(rel->hheap.ht);
     free(rel->hheap.binheap.harr);
     free(rel->top.array);
