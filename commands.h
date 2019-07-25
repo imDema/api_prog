@@ -102,6 +102,11 @@ void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_en
 
         decrease_all_relations(relations, rar, order, ent2->id_ent, h_ent2);
         ht_delete(ent2->ht, ent->id_ent, h_ent);
+        if(ent2->ht->count == 0)
+        {
+            ht_free(ent2->ht);
+            ent2->ht = NULL;
+        }
         relarray_free(rar);
     }
 }
