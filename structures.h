@@ -538,7 +538,7 @@ void free_prev_relrrays(direct_ht* ht, const char* free_delimiter)
     for(int i = 0, cnt = ht->count; cnt > 0; i++)
     {
         bucket bkt = buckets[i];
-        if(bkt.hash == 0)
+        if(bkt.key == NULL)
             continue;
 
         cnt--;
@@ -554,7 +554,7 @@ void free_entities(direct_ht* ht)
     for(int i = 0, cnt = ht->count; cnt > 0; i++)
     {
         bucket bkt = buckets[i];
-        if(bkt.hash == 0)
+        if(bkt.key == NULL)
             continue;
         
         cnt--;

@@ -24,7 +24,6 @@ uint hash(const char* word)
 
 typedef struct bucket //20 bytes each
 {
-    uint hash;
     const char* key;
     void* value;
 } bucket;
@@ -85,13 +84,12 @@ void ht_put(direct_ht* ht, const char* key, void* value, uint hash)
     //Find an open slot
     while(1)
     {
-        if(ht->buckets[index].hash == 0)
+        if(ht->buckets[index].key == NULL)
             break;
         index = (index + h2) % ht->size;
     }
     if(ht->buckets[index].value == NULL) //Increase occupation only if the bucket was never used
         ht->occupied++;
-    ht->buckets[index].hash = hash;
     ht->buckets[index].key = key;
     ht->buckets[index].value = value;
     ht->count++;
@@ -104,9 +102,9 @@ void resize_hashtable(direct_ht* ht, int size)
     for(int i = 0; i < ht->size; i++)
     {
         bucket bkt = ht->buckets[i];
-        if(bkt.hash != 0)
+        if(bkt.key != NULL)
         {
-            ht_put(&new_ht, bkt.key, bkt.value, bkt.hash);
+            ht_put(&new_ht, bkt.key, bkt.value, hash(bkt.key));
         }
     }
 
@@ -125,10 +123,10 @@ void* ht_search(const direct_ht* ht, const char* key, uint hash)
     {
         bucket bkt = ht->buckets[index];
 
-        if(bkt.hash == hash && !strcmp(bkt.key, key)) //Found
+        if(bkt.key != NULL && !strcmp(bkt.key, key)) //Found
             return bkt.value;
 
-        else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket
+        else if(bkt.key == NULL && bkt.value != ht->buckets) //Landed on empty no collisions bucket
             return NULL;
 
         index = (index + h2) % ht->size;
@@ -146,10 +144,10 @@ const char* ht_search_keyptr(const direct_ht* ht, const char* key, uint hash)
     {
         bucket bkt = ht->buckets[index];
 
-        if(bkt.hash == hash && !strcmp(bkt.key, key)) //Found
+        if(bkt.key != NULL && !strcmp(bkt.key, key)) //Found
             return bkt.key;
 
-        else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket
+        else if(bkt.key == NULL && bkt.value != ht->buckets) //Landed on empty no collisions bucket
             return NULL;
 
         index = (index + h2) % ht->size;
@@ -180,22 +178,21 @@ void ht_delete(direct_ht* ht, const char* key, uint hash)
     while(1)
     {
         bucket bkt = ht->buckets[index];
-        if(bkt.hash == hash && !strcmp(bkt.key, key)) //Found
+        if(bkt.key != NULL && !strcmp(bkt.key, key)) //Found
         {
             //Free key, set hash to 0 and mark as deleted by setting value to ht->bucket
-            ht->buckets[index].hash = 0;
             ht->buckets[index].value = ht->buckets; //Marked as deleted to keep potential colliding walks intact
             ht->buckets[index].key = NULL;
             ht->count--;
             break;
         }
-        else if(bkt.hash == 0 && bkt.value != ht->buckets) //Landed on empty no collisions bucket, item didn't exist
+        else if(bkt.key == NULL && bkt.value != ht->buckets) //Landed on empty no collisions bucket, item didn't exist
             break;
 
         index = (index + h2) % ht->size;
     }
     //Decrease if many deleted //TODO CHECK THIS
-    if(ht->size > 6 && ht->count < ht->loadsize / 2 - 1)
+    if(ht->size > 6 && ht->count < ht->loadsize / 4 - 1)
     {
         resize_hashtable(ht, ht->size / 2);
     }

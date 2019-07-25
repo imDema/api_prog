@@ -83,7 +83,7 @@ void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_en
     for(int i = 0, cnt = entity_ht.count; cnt > 0; i++)
     {
         bucket bkt = entity_ht.buckets[i];
-        if(bkt.hash == 0)
+        if(bkt.key == NULL)
             continue;
         
         cnt--;
