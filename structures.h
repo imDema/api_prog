@@ -408,6 +408,33 @@ struct _rel_db
 };
 typedef struct _rel_db* rel_db;
 
+void free_relations(aa_node tree)
+{
+    if(tree == NULL) return;
+    free_relations(tree->left);
+    free_relations(tree->right);
+    relation* rel = tree->content;
+
+    ht_free(rel->hheap.ht);
+    for(int j = 0, m = rel->hheap.binheap.count; j < m; j++)
+    {
+        free(rel->hheap.binheap.harr[j]);
+    }
+    free(rel->hheap.binheap.harr);
+    free(rel->top.array);
+    free(rel->id_rel);
+    free(rel);
+    free(tree);
+}
+void rel_db_free(rel_db relations)
+{
+    free_relations(relations->tree);
+    
+    free(relations->array);
+    free(relations->index_queue.array);
+    free(relations);
+}
+
 relation* create_relation(rel_db relations, const char* id_rel)
 {
     relation* rel = aa_search(relations->tree, id_rel);
@@ -504,33 +531,6 @@ void aa_free(aa_node tree)
     free(tree);
 }
 
-
-void free_relations(aa_node tree)
-{
-    if(tree == NULL) return;
-    free_relations(tree->left);
-    free_relations(tree->right);
-    relation* rel = tree->content;
-
-    ht_free(rel->hheap.ht);
-    for(int j = 0, m = rel->hheap.binheap.count; j < m; j++)
-    {
-        free(rel->hheap.binheap.harr[j]);
-    }
-    free(rel->hheap.binheap.harr);
-    free(rel->top.array);
-    free(rel->id_rel);
-    free(rel);
-    free(tree);
-}
-void rel_db_free(rel_db relations)
-{
-    free_relations(relations->tree);
-    
-    free(relations->array);
-    aa_free(relations->tree);
-    free(relations);
-}
 
 void free_prev_relrrays(direct_ht* ht, const char* free_delimiter)
 {

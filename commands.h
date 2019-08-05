@@ -130,6 +130,7 @@ void delent(direct_ht* ht, rel_db relations, const char* id_ent)
     //Delete the entity
     ht_delete(ht, ent->id_ent, h_ent);
     //Free the resources
+    ht_free(ent->ht);
     free(ent->id_ent);
     free(ent);
 }

@@ -22,19 +22,19 @@ uint hash(const char* word)
     return h;
 }
 
-typedef struct bucket //20 bytes each
+typedef struct bucket //16 bytes each
 {
     const char* key;
     void* value;
 } bucket;
 
-struct _direct_ht //20 bytes each
+struct _direct_ht //24 bytes each
 {
     int count;
     int size;
     int loadsize;
     int occupied;
-    struct bucket* buckets;     //80 for default size
+    struct bucket* buckets;
 };
 typedef struct _direct_ht direct_ht;
 
