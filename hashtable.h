@@ -71,7 +71,11 @@ direct_ht create_direct_ht(int min_size)
 direct_ht* new_direct_ht(int min_size)
 {
     direct_ht* ht = malloc(sizeof(struct _direct_ht));
-    *ht = create_direct_ht(min_size);
+    ht->count = 0;
+    ht->size = 1;
+    ht->loadsize = 1;
+    ht->occupied = 0;
+    ht->buckets = calloc(1,sizeof(bucket));
     return ht;
 }
 
@@ -114,6 +118,12 @@ void resize_hashtable(direct_ht* ht, int size)
 
 void* ht_search(const direct_ht* ht, const char* key, uint hash)
 {
+    if(ht->size == 1)
+    {
+        if(ht-> count == 1 && !strcmp(ht->buckets[0].key,key))
+            return ht->buckets[0].value;
+        else return NULL;
+    }
     //Starting index
     int index = hash % ht->size;
     //Increments
@@ -135,6 +145,12 @@ void* ht_search(const direct_ht* ht, const char* key, uint hash)
 
 const char* ht_search_keyptr(const direct_ht* ht, const char* key, uint hash)
 {
+    if(ht->size == 1)
+    {
+        if(!strcmp(ht->buckets[0].key,key))
+            return ht->buckets[0].key;
+        else return NULL;
+    }
     //Starting index
     int index = hash % ht->size;
     //Increments
@@ -156,9 +172,19 @@ const char* ht_search_keyptr(const direct_ht* ht, const char* key, uint hash)
 
 void ht_insert(direct_ht* ht, const char* key, void* value, uint hash)
 {
-    //if(ht_search(ht, key, hash) != NULL)return;
-
-    if(ht->occupied >= ht->loadsize )
+    if(ht->size == 1)
+    {
+        if(ht->count == 0)
+        {
+            ht->count = 1;
+            ht->buckets[0].key = key;
+            ht->buckets[0].value = value;
+            return;
+        }
+        else
+            resize_hashtable(ht, DEFAULT_DIRECT_HT_SIZE);
+    }
+    else if(ht->occupied >= ht->loadsize )
     {
         if(ht->count > ht->occupied / 3)
             resize_hashtable(ht, ht->size * 2);
@@ -170,6 +196,16 @@ void ht_insert(direct_ht* ht, const char* key, void* value, uint hash)
 
 void ht_delete(direct_ht* ht, const char* key, uint hash)
 {
+    if(ht->size == 1)
+    {
+        if(ht->count == 1 && !strcmp(ht->buckets[0].key,key))
+        {
+            ht->buckets[0].value = 0;
+            ht->buckets[0].key = 0;
+            ht->count = 0;
+        }
+        return;
+    }
     //Starting index
     int index = hash % ht->size;
     //Increments
@@ -196,6 +232,8 @@ void ht_delete(direct_ht* ht, const char* key, uint hash)
     {
         resize_hashtable(ht, ht->size / 2);
     }
+    else if(ht->count < 3)
+        resize_hashtable(ht, 3);
 }
 
 void ht_free(direct_ht* ht)
