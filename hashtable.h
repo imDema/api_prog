@@ -228,12 +228,12 @@ void ht_delete(direct_ht* ht, const char* key, uint hash)
         index = (index + h2) % ht->size;
     }
     //Decrease if many deleted //TODO CHECK THIS
-    if(ht->size > 6 && ht->count < ht->loadsize / 4 - 1)
+    if(ht->count < 3)
+        resize_hashtable(ht, 3);
+    else if(ht->size > 3 && ht->count < ht->loadsize / 2 - 1)
     {
         resize_hashtable(ht, ht->size / 2);
     }
-    else if(ht->count < 3)
-        resize_hashtable(ht, 3);
 }
 
 void ht_free(direct_ht* ht)

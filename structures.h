@@ -347,9 +347,9 @@ int hh_delete(hashheap* hh, const char* id_ent, uint hash)
     max_heapify(&(hh->binheap), 0);
     ht_delete(hh->ht, id_ent, hash);
     free(item);
-    if(hh->binheap.count < hh->binheap.size / 4)
+    if(hh->binheap.count < hh->binheap.size / 2)
     {
-        hh->binheap.size /= 4;
+        hh->binheap.size /= 2;
         hh->binheap.harr = realloc(hh->binheap.harr, hh->binheap.size * sizeof(heap_item*));
     }
 
