@@ -1,5 +1,6 @@
 #define MAXLEN 1024
 typedef unsigned int uint;
+typedef unsigned char byte;
 
 #include <stdlib.h>
 #include <stdio.h>

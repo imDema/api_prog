@@ -1,5 +1,4 @@
-typedef unsigned char byte;
-#define ARRAYLIST_DEFAULTSIZE sizeof(void*) / sizeof(byte)
+#define ARRAYLIST_DEFAULTSIZE sizeof(void*) / sizeof(byte) //Align to word size
 #define FROM_FIRST 0x1
 #define FROM_SECOND 0x2
 

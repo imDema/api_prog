@@ -23,28 +23,24 @@ void addrel(direct_ht* ht, rel_db relations,
     if(ent_orig == NULL || ent_dest == NULL)
         return;
 
-    //Find the link to get to the relarray
-    //*aa_node link = aa_search(ent_orig->tree_root, id_dest);
     if(ent_orig->ht == NULL)
         ent_orig->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
     if(ent_dest->ht == NULL)
         ent_dest->ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
+    //Get relarray if it exists
     relarray rar = ht_search(ent_orig->ht, ent_dest->id_ent, h_dest);
 
     if(rar == NULL) //If the link didn't exist create a new one
     {
         //Create a new relarray and place it in both the entities trees
         rar = new_relarray();
-        //*ent_orig->tree_root = aa_insert(ent_orig->tree_root, ent_dest->id_ent, rar);
         ht_insert(ent_orig->ht, ent_dest->id_ent, rar, h_dest);
+
         //Check if the relation is reflessive, if not don't add it twice
         if(ent_orig != ent_dest)
             ht_insert(ent_dest->ht, ent_orig->id_ent, rar, h_orig);
-            //*ent_dest->tree_root = aa_insert(ent_dest->tree_root, ent_orig->id_ent, rar);
     }
-    //*else //If the link existed retrieve relation array
-    //*    rar = link->rar;
 
     //Get relation item (create it if it doesn't exist)
     relation* rel = create_relation(relations, id_rel);
@@ -59,6 +55,7 @@ void addrel(direct_ht* ht, rel_db relations,
     }
 }
 
+//For entity ent2 decrease all relation counters of active relations on link
 void decrease_all_relations(rel_db relations, relarray rar, int order, const char* id_ent2, uint h_ent2)
 {
     byte* ar = rar->array;
@@ -76,6 +73,7 @@ void decrease_all_relations(rel_db relations, relarray rar, int order, const cha
     }
 }
 
+//Go through all the entity's active links, delete and update counters
 void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_ent)
 {
     //Scroll through all the elements
@@ -84,7 +82,7 @@ void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_en
     {
         bucket bkt = entity_ht.buckets[i];
         if(bkt.key == NULL)
-            continue;
+            continue; //Continue till a valid bucket
         
         cnt--;
         int order = strcmp(ent->id_ent, bkt.key);
@@ -95,13 +93,16 @@ void dellinks(const direct_ht* ht, rel_db relations, entity ent, const uint h_en
             continue;
         }
 
+        //Find linked entity
         const uint h_ent2 = hash(bkt.key);
         entity ent2 = ht_search(ht, bkt.key, h_ent2);
 
+        //Empty relarray updating counters
         relarray rar = (relarray)bkt.value;
 
         decrease_all_relations(relations, rar, order, ent2->id_ent, h_ent2);
         ht_delete(ent2->ht, ent->id_ent, h_ent);
+        //Free up
         if(ent2->ht->count == 0)
         {
             ht_free(ent2->ht);
@@ -145,30 +146,24 @@ void delrel(direct_ht* ht, rel_db relations, const char* id_orig, const char* id
     if(ent_orig == NULL || ent_dest == NULL || ent_orig->ht == NULL)
         return;
     
-
-    //Search link
-    //*aa_node link = aa_search(ent_orig->tree_root, id_dest);
-    //*if(link == NULL) return;
+    //Find the relarray
     relarray rar = ht_search(ent_orig->ht, ent_dest->id_ent, h_dest);
-
-    //Get the relarray
-    //*relarray rar = link->rar;
     if(!rar) return;
 
     //Find the relation
     relation* rel = aa_search(relations->tree, id_rel);
     if(!rel) return;
 
+    //Try removing
     int direction = strcmp(id_orig, id_dest);
     if(relarray_remove(rar, rel->index, direction))
     {
-        //If the relation existed decrease the entry in the heap
+        //If there actually was a relation decrease the entry in the heap
         decrease_relations_count(relations, rel->index, id_dest, h_dest);
     }
     if(rar->count == 0) //If there are no more active relations on the link delete it
     {
         //Delete the link from the origin
-        //*ent_orig->tree_root = aa_delete(ent_orig->tree_root, id_dest);
         ht_delete(ent_orig->ht, ent_dest->id_ent, h_dest);
         if(ent_orig->ht->count == 0)
         {
@@ -189,9 +184,12 @@ void delrel(direct_ht* ht, rel_db relations, const char* id_orig, const char* id
     }
 }
 
+# define INT_MAX_STRING_LENGTH 11 //MAX_INT is 10 digits
+
+//Fast int formatter because printf is too generic and slow
 void fast_int_format(char* string, int integer)
 {
-    char formatted[10]; //MAX_INT ha 10 cifre
+    char formatted[INT_MAX_STRING_LENGTH]; 
     int s = 0;
     for(int val = integer; val > 0; val /= 10)
         formatted[s++] = val % 10 + '0';
@@ -211,42 +209,42 @@ int cmpstr(const void* a, const void* b)
 
 void rebuild_top(relation* rel)
 {
-    rel->topval = hh_peek(&(rel->hheap));
-    arraylist_reset(&(rel->top));
+    rel->topval = hh_peek(&(rel->hheap));   //Peek the top value from the heap
+    arraylist_reset(&(rel->top));   //Rebuild the list
     hh_addto_topar(&(rel->hheap), &(rel->top), rel->topval, 0);
-    qsort(rel->top.array, rel->top.count, sizeof(char*), cmpstr);
+    qsort(rel->top.array, rel->top.count, sizeof(char*), cmpstr);   //Sort it
 }
 
 void sorted_print(aa_node tree, int* first)
 {
+    //Depth first traversal for sorted access
     if(tree == NULL) return;
     sorted_print(tree->left, first);
 
-    char intbuf[32];
+    char intbuf[INT_MAX_STRING_LENGTH];
 
     relation* rel = tree->content;
-    if(rel->hheap.binheap.count > 0)
+    if(rel->hheap.binheap.count > 0) //If there are active relations
     {
-        if(rel->topval <=  0)
-            rebuild_top(rel);
+        if(rel->topval <=  0)   //A relations' topval gets set to -1 when the last toplist is invalid
+            rebuild_top(rel);   //and needs to be rebuilt
 
         intbuf[0] = '\0';
         if(!*first)
             fputc(' ', stdout);
         *first = 0;
-        fputc('\"', stdout);
+        fputc('\"', stdout);    //Relation id
         fputs(rel->id_rel, stdout);
         fputs("\" ", stdout);
-        for(int j = 0; j < rel->top.count; j++)
+        for(int j = 0; j < rel->top.count; j++) //Ent_id in toplist
         {
             fputc('\"', stdout);
             fputs(rel->top.array[j], stdout);
             fputs("\" ", stdout);
         }
-        fast_int_format(intbuf, rel->topval);
+        fast_int_format(intbuf, rel->topval); //Top count
         fputs(intbuf, stdout);
         fputc(';', stdout);
-        //sprintf(output + strlen(output), "%d;", curr->topval);
     }
 
     sorted_print(tree->right, first);
@@ -254,10 +252,9 @@ void sorted_print(aa_node tree, int* first)
 
 void report(rel_db relations)
 {
-    //Memory buffer
+    //Used for dividing spaces
     int first = 1;
 
-    //Scroll through the ordered list
     sorted_print(relations->tree, &first);
     if(first)
         fputs("none\n", stdout);

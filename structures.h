@@ -2,8 +2,6 @@
 #define DEFAULT_HARR_SIZE 4
 #define TOPVAL_INVALID -1
 
-/////////NEW
-
 typedef struct heap_item
 {
     const char* id_ent;
@@ -48,6 +46,26 @@ typedef struct pq
     int size;
     int count;
 } pq;
+
+struct _relation
+{
+    char* id_rel;
+    int index;
+    int topval;
+    arraylist top;
+    hashheap hheap;
+};
+typedef struct _relation relation;
+
+struct _rel_db
+{
+    relation** array;
+    aa_node tree;
+    pq index_queue;
+    int size;
+    int maxindex;
+};
+typedef struct _rel_db* rel_db;
 
 void swapint(int* a, int* b)
 {
@@ -268,6 +286,26 @@ void heap_swap(heap* binheap, int a, int b)
     binheap->harr[b] = tmp;
 }
 
+void max_heapify(heap* binheap, int pos)
+{
+    int l = left(pos);
+    int r = right(pos);
+    int greatest = pos;
+
+    heap_item** harr = binheap->harr;
+
+    if (l < binheap->count && harr[l]->count > harr[greatest]->count) 
+        greatest = l; 
+    if (r < binheap->count && harr[r]->count > harr[greatest]->count) 
+        greatest = r; 
+
+    if (greatest != pos)
+    {
+        heap_swap(binheap, greatest, pos);
+        max_heapify(binheap, greatest);
+    }
+}
+
 //Returns new value
 int hh_increase(hashheap* hh, const char* id_ent, uint hash)
 {
@@ -310,26 +348,6 @@ int hh_increase(hashheap* hh, const char* id_ent, uint hash)
         }
     }
     return item->count;
-}
-
-void max_heapify(heap* binheap, int pos)
-{
-    int l = left(pos);
-    int r = right(pos);
-    int greatest = pos;
-
-    heap_item** harr = binheap->harr;
-
-    if (l < binheap->count && harr[l]->count > harr[greatest]->count) 
-        greatest = l; 
-    if (r < binheap->count && harr[r]->count > harr[greatest]->count) 
-        greatest = r; 
-
-    if (greatest != pos)
-    {
-        heap_swap(binheap, greatest, pos);
-        max_heapify(binheap, greatest);
-    }
 }
 
 //Returns old value
@@ -378,6 +396,7 @@ int hh_peek(hashheap* hh)
     return hh->binheap.harr[0]->count;
 }
 
+//Traverse the heap accessing all elements with specified count adding them to topar
 void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
 {
     if(root < hh->binheap.count && hh->binheap.harr[root]->count == count)
@@ -388,51 +407,17 @@ void hh_addto_topar(hashheap* hh, arraylist* topar, int count, int root)
     }
 }
 
-struct _relation
+rel_db new_rel_db()
 {
-    char* id_rel;
-    int index;
-    int topval;
-    arraylist top;
-    hashheap hheap;
-};
-typedef struct _relation relation;
-
-struct _rel_db
-{
-    relation** array;
-    aa_node tree;
-    pq index_queue;
-    int size;
-    int maxindex;
-};
-typedef struct _rel_db* rel_db;
-
-void free_relations(aa_node tree)
-{
-    if(tree == NULL) return;
-    free_relations(tree->left);
-    free_relations(tree->right);
-    relation* rel = tree->content;
-
-    ht_free(rel->hheap.ht);
-    for(int j = 0, m = rel->hheap.binheap.count; j < m; j++)
-    {
-        free(rel->hheap.binheap.harr[j]);
-    }
-    free(rel->hheap.binheap.harr);
-    free(rel->top.array);
-    free(rel->id_rel);
-    free(rel);
-    free(tree);
-}
-void rel_db_free(rel_db relations)
-{
-    free_relations(relations->tree);
-    
-    free(relations->array);
-    free(relations->index_queue.array);
-    free(relations);
+    rel_db relations = malloc(sizeof(struct _rel_db));
+    relations->tree = NULL;
+    relations->array = malloc(DEFAULT_REL_DB_ARR_SIZE * sizeof(relation*));
+    relations->index_queue.size = 2;
+    relations->index_queue.array = malloc(sizeof(int) * relations->index_queue.size);
+    relations->index_queue.count = 0;
+    relations->maxindex = 0;
+    relations->size  = DEFAULT_REL_DB_ARR_SIZE;
+    return relations;
 }
 
 relation* create_relation(rel_db relations, const char* id_rel)
@@ -509,17 +494,31 @@ void delete_relation_count(const rel_db relations, int index, const char* id_ent
         delete_relation(relations, index);
 }
 
-rel_db new_rel_db()
+void free_relations(aa_node tree)
 {
-    rel_db relations = malloc(sizeof(struct _rel_db));
-    relations->tree = NULL;
-    relations->array = malloc(DEFAULT_REL_DB_ARR_SIZE * sizeof(relation*));
-    relations->index_queue.size = 2;
-    relations->index_queue.array = malloc(sizeof(int) * relations->index_queue.size);
-    relations->index_queue.count = 0;
-    relations->maxindex = 0;
-    relations->size  = DEFAULT_REL_DB_ARR_SIZE;
-    return relations;
+    if(tree == NULL) return;
+    free_relations(tree->left);
+    free_relations(tree->right);
+    relation* rel = tree->content;
+
+    ht_free(rel->hheap.ht);
+    for(int j = 0, m = rel->hheap.binheap.count; j < m; j++)
+    {
+        free(rel->hheap.binheap.harr[j]);
+    }
+    free(rel->hheap.binheap.harr);
+    free(rel->top.array);
+    free(rel->id_rel);
+    free(rel);
+    free(tree);
+}
+void rel_db_free(rel_db relations)
+{
+    free_relations(relations->tree);
+    
+    free(relations->array);
+    free(relations->index_queue.array);
+    free(relations);
 }
 
 void aa_free(aa_node tree)
@@ -530,7 +529,6 @@ void aa_free(aa_node tree)
     aa_free(tree->right);
     free(tree);
 }
-
 
 void free_prev_relrrays(direct_ht* ht, const char* free_delimiter)
 {
