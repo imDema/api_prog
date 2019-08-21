@@ -10,5 +10,8 @@ build:
 debug:
 	$(CC) $(CFLAGS) -Wuninitialized -Werror -pedantic -g3 -o main $(MAIN)
 
+debug-optimized:
+	$(CC) $(CFLAGS) -O2 -Wuninitialized -Werror -pedantic -g3 -o main $(MAIN)
+
 test:
 	$(CC) $(CFLAGS) -O2 -o tests/testhash.out tests/testhash.c

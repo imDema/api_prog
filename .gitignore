@@ -2,3 +2,4 @@
 *.out
 main
 tests/*.txt
+tests/*.in
