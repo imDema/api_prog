@@ -6,7 +6,6 @@ typedef unsigned char byte;
 #include <stdio.h>
 #include <string.h>
 #include "arraylist.h"
-#include "toplist.h"
 #include "hashtable.h"
 #include "structures.h"
 #include "commands.h"
