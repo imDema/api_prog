@@ -3,3 +3,5 @@
 main
 tests/*.txt
 tests/*.in
+massif.out.*
+callgrind.out.*

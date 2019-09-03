@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     direct_ht* ht = new_direct_ht(DEFAULT_DIRECT_HT_SIZE);
 
     FILE* inptr = stdin;
-    //inptr = fopen("tests/100k100r.in","r"); //FOR DEBUGGING
+    //inptr = fopen("tests/up-down_250k16r.in","r"); //FOR DEBUGGING
 
     //START READING INPUTS
     while(strcmp(fgets(line, MAXLEN, inptr), "end\n"))
